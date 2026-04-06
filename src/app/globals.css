@@ -1,0 +1,180 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 20% 98%;
+    --foreground: 220 20% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 10%;
+
+    --primary: 172 66% 40%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 215 20% 95%;
+    --secondary-foreground: 220 20% 20%;
+
+    --muted: 215 15% 93%;
+    --muted-foreground: 215 10% 50%;
+
+    --accent: 172 50% 94%;
+    --accent-foreground: 172 66% 25%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 215 20% 90%;
+    --input: 215 20% 90%;
+    --ring: 172 66% 40%;
+
+    --radius: 0.625rem;
+
+    --sidebar-background: 220 20% 10%;
+    --sidebar-foreground: 215 15% 70%;
+    --sidebar-primary: 172 66% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 20% 15%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 220 15% 18%;
+    --sidebar-ring: 172 66% 50%;
+
+    --success: 142 72% 40%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --info: 210 80% 52%;
+    --info-foreground: 0 0% 100%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(172, 66%, 40%), hsl(190, 70%, 45%));
+    --gradient-hero: linear-gradient(135deg, hsl(220, 20%, 8%), hsl(220, 25%, 15%));
+    --shadow-sm: 0 1px 2px 0 hsl(220 20% 10% / 0.04);
+    --shadow-md: 0 4px 12px -2px hsl(220 20% 10% / 0.08);
+    --shadow-lg: 0 12px 32px -4px hsl(220 20% 10% / 0.12);
+    --shadow-glow: 0 0 20px hsl(172deg 66% 40% / 0.15);
+  }
+
+  .dark {
+    --background: 220 20% 7%;
+    --foreground: 210 20% 93%;
+
+    --card: 220 20% 10%;
+    --card-foreground: 210 20% 93%;
+
+    --popover: 220 20% 10%;
+    --popover-foreground: 210 20% 93%;
+
+    --primary: 172 66% 50%;
+    --primary-foreground: 220 20% 5%;
+
+    --secondary: 220 15% 15%;
+    --secondary-foreground: 210 20% 85%;
+
+    --muted: 220 15% 15%;
+    --muted-foreground: 215 10% 55%;
+
+    --accent: 220 15% 15%;
+    --accent-foreground: 172 66% 60%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 220 15% 18%;
+    --input: 220 15% 18%;
+    --ring: 172 66% 50%;
+
+    --sidebar-background: 220 20% 5%;
+    --sidebar-foreground: 215 15% 65%;
+    --sidebar-primary: 172 66% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 20% 10%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 220 15% 12%;
+    --sidebar-ring: 172 66% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-card/80 backdrop-blur-lg border border-border/50;
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: var(--gradient-primary);
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.4s ease-out;
+  }
+
+  .animate-pulse-gentle {
+    animation: pulseGentle 2s ease-in-out infinite;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulseGentle {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(215 15% 85%) transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: hsl(215 15% 85%);
+  border-radius: 3px;
+}
