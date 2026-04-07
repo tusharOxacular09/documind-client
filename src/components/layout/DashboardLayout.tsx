@@ -10,7 +10,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="min-h-screen flex w-full">
+    <div className="min-h-dvh flex w-full">
       <AppSidebar
         collapsed={collapsed}
         onToggle={() => setCollapsed(!collapsed)}
@@ -19,7 +19,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       />
       <div className="flex-1 flex flex-col min-w-0">
         <TopNavbar onMenuClick={() => setMobileOpen(true)} />
-        <main className="flex-1 overflow-auto">{children}</main>
+        <main className="flex-1 min-h-0 overflow-auto">{children}</main>
       </div>
     </div>
   );

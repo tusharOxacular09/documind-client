@@ -2,21 +2,40 @@
 
 import { Loader2 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 
 import { api } from "@/services/api";
 import { authStorage } from "@/store/auth-storage";
 import type { SafeUser } from "@/types/api";
 
-const DashboardUserContext = createContext<SafeUser | null>(null);
+type DashboardSessionValue = {
+  user: SafeUser;
+  refreshProfile: () => Promise<void>;
+};
 
-export const useDashboardUser = (): SafeUser | null => useContext(DashboardUserContext);
+const DashboardUserContext = createContext<DashboardSessionValue | null>(null);
+
+export const useDashboardUser = (): SafeUser | null => useContext(DashboardUserContext)?.user ?? null;
+
+export function useDashboardSession(): DashboardSessionValue {
+  const ctx = useContext(DashboardUserContext);
+  if (!ctx) {
+    throw new Error("useDashboardSession must be used inside DashboardSession");
+  }
+  return ctx;
+}
 
 export function DashboardSession({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState<SafeUser | null>(() => authStorage.getUser());
   const [ready, setReady] = useState(false);
+
+  const refreshProfile = useCallback(async () => {
+    const { user: u } = await api.me();
+    authStorage.setUser(u);
+    setUser(u);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -42,11 +61,11 @@ export function DashboardSession({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [router, pathname]);
 
   if (!ready) {
     return (
-      <div className="flex min-h-screen w-full items-center justify-center bg-background">
+      <div className="flex min-h-dvh w-full items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -56,5 +75,7 @@ export function DashboardSession({ children }: { children: ReactNode }) {
     return null;
   }
 
-  return <DashboardUserContext.Provider value={user}>{children}</DashboardUserContext.Provider>;
+  return (
+    <DashboardUserContext.Provider value={{ user, refreshProfile }}>{children}</DashboardUserContext.Provider>
+  );
 }

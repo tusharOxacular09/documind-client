@@ -31,11 +31,20 @@ export function HistoryView() {
     });
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6 animate-fade-in">
+    <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-6 animate-fade-in pb-safe">
       <div>
-        <h1 className="text-2xl font-semibold">Conversation History</h1>
-        <p className="text-muted-foreground mt-1">{conversations.length} past conversations</p>
+        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Conversation history</h1>
+        <p className="text-muted-foreground text-sm sm:text-base mt-1">
+          {conversations.length === 0 ? "No conversations yet" : `${conversations.length} saved chats`}
+        </p>
       </div>
+
+      {conversations.length === 0 ? (
+        <div className="rounded-xl border border-dashed bg-muted/20 px-6 py-14 text-center text-sm text-muted-foreground">
+          Open <span className="font-medium text-foreground">Chat</span> and ask a question about your documents. Each
+          thread appears here automatically.
+        </div>
+      ) : null}
 
       <div className="space-y-2">
         {conversations.map((conv) => (

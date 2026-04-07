@@ -277,7 +277,7 @@ export function ChatView() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] animate-fade-in">
+    <div className="flex h-[calc(100dvh-3.5rem)] min-h-[calc(100dvh-3.5rem)] max-h-[calc(100dvh-3.5rem)] animate-fade-in">
       {/* Document selector panel */}
       <div className="border-r bg-card hidden md:flex flex-col shrink-0 min-h-0 w-64 transition-all duration-300">
         <DocumentPickerSection

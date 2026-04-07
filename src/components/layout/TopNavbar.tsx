@@ -1,6 +1,7 @@
 "use client";
 
 import { Menu, LogOut, User } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { useDashboardUser } from "@/components/auth/dashboard-session";
@@ -21,12 +22,19 @@ const TopNavbar = ({ onMenuClick }: TopNavbarProps) => {
   };
 
   return (
-    <header className="h-14 border-b bg-card flex items-center justify-between px-4 shrink-0">
-      <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenuClick}>
+    <header className="h-14 border-b bg-card flex items-center gap-2 px-3 sm:px-4 shrink-0 pt-safe">
+      <Button variant="ghost" size="icon" className="lg:hidden shrink-0 -ml-1" onClick={onMenuClick} aria-label="Open menu">
         <Menu className="w-5 h-5" />
       </Button>
 
-      <div className="flex-1" />
+      <Link
+        href="/dashboard"
+        className="font-semibold text-sm sm:text-base tracking-tight truncate text-foreground hover:text-primary transition-colors"
+      >
+        DocuMind
+      </Link>
+
+      <div className="flex-1 min-w-2" />
 
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary">
