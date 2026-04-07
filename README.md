@@ -20,11 +20,11 @@ Web application for **DocuMind**, a multi-user document intelligence product: up
 ## What’s implemented
 
 - **Auth** — Login, signup, protected dashboard routes, session bootstrap via `GET /api/auth/me`
-- **Documents** — List, upload (base64 JSON), delete, status polling (`uploaded` → `processing` → `ready` / `failed`), worker health strip
+- **Documents** — List, upload (**multipart** `FormData` preferred; JSON base64 still supported), delete, status polling (`uploaded` → `processing` → `ready` / `failed`), worker health strip
 - **Chat** — Document sidebar (desktop) + **mobile sheet** picker, “Search all” vs selected docs, suggested questions from API, citations, thumbs up/down on assistant messages
 - **History** — Conversation list → resume chat with `?chatId=`
 - **Dashboard** — Live stats from documents + chats (no mock data)
-- **Settings** — Profile update (`PUT /api/auth/profile`), device-local preference toggles
+- **Settings** — Profile update (`PUT /api/auth/profile`), account deletion (`POST /api/auth/account/delete` with password), device-local preference toggles
 - **UX** — Responsive layout, `dvh` / safe-area aware shell, accessible controls
 
 ---

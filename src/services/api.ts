@@ -92,6 +92,45 @@ async function request<T>(path: string, init: RequestInitWithBody = {}, retried 
   return payload.data;
 }
 
+async function requestFormData<T>(path: string, formData: FormData, retried = false): Promise<T> {
+  const headers = new Headers();
+  const token = typeof window !== "undefined" ? authStorage.getAccessToken() : null;
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const res = await fetch(`${baseUrl}${path}`, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+
+  let payload: ApiSuccess<T> | ApiErrorBody;
+  try {
+    payload = await parseJson<ApiSuccess<T> | ApiErrorBody>(res);
+  } catch {
+    throw new Error("Invalid response from server");
+  }
+
+  if (res.status === 401 && !retried && !isNoAuthPath(path) && authStorage.getRefreshToken()) {
+    const refreshed = await tryRefreshAccessToken();
+    if (refreshed) {
+      return requestFormData<T>(path, formData, true);
+    }
+    authStorage.clear();
+  }
+
+  if (payload.status === "error") {
+    throw new Error(payload.message || "Request failed");
+  }
+
+  if (!res.ok) {
+    throw new Error(payload.message || `HTTP ${res.status}`);
+  }
+
+  return payload.data;
+}
+
 export const api = {
   baseUrl,
 
@@ -127,6 +166,10 @@ export const api = {
     return request<{ user: SafeUser }>("/api/auth/profile", { method: "PUT", body });
   },
 
+  async deleteAccount(body: { password: string }): Promise<{ deleted: boolean }> {
+    return request<{ deleted: boolean }>("/api/auth/account/delete", { method: "POST", body });
+  },
+
   async getDocumentProcessingHealth(): Promise<{ worker: DocumentProcessingWorkerStats }> {
     return request<{ worker: DocumentProcessingWorkerStats }>("/api/documents/processing/health", {
       method: "GET",
@@ -150,6 +193,12 @@ export const api = {
     contentBase64: string;
   }): Promise<{ document: DocumentItem }> {
     return request<{ document: DocumentItem }>("/api/documents/upload", { method: "POST", body });
+  },
+
+  async uploadDocumentFile(file: File): Promise<{ document: DocumentItem }> {
+    const formData = new FormData();
+    formData.append("file", file);
+    return requestFormData<{ document: DocumentItem }>("/api/documents/upload/multipart", formData);
   },
 
   async deleteDocument(documentId: string): Promise<{ deleted: boolean }> {

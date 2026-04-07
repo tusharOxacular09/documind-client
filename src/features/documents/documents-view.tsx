@@ -129,23 +129,7 @@ export function DocumentsView() {
           if (file.size > MAX_UPLOAD_BYTES) {
             throw new Error(`"${file.name}" exceeds the 10 MB limit.`);
           }
-          const contentBase64 = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => {
-              const result = typeof reader.result === "string" ? reader.result : "";
-              const base64 = result.includes(",") ? result.split(",")[1] : result;
-              resolve(base64);
-            };
-            reader.onerror = () => reject(new Error(`Failed to read "${file.name}"`));
-            reader.readAsDataURL(file);
-          });
-
-          await api.uploadDocument({
-            name: file.name,
-            type,
-            sizeBytes: file.size,
-            contentBase64,
-          });
+          await api.uploadDocumentFile(file);
         }
         await loadDocuments();
       } catch (err) {
