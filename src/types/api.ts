@@ -73,3 +73,7 @@ export type ChatSummary = {
   messageCount: number;
   lastMessagePreview: string;
 };
+
+export type ChatSuggestion = {
+  text: string;
+};

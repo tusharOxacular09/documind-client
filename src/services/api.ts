@@ -3,6 +3,7 @@ import type {
   ApiSuccess,
   AuthPayload,
   ChatMessage,
+  ChatSuggestion,
   ChatSummary,
   DocumentItem,
   DocumentProcessingWorkerStats,
@@ -157,6 +158,10 @@ export const api = {
 
   async listChats(): Promise<{ chats: ChatSummary[] }> {
     return request<{ chats: ChatSummary[] }>("/api/chats", { method: "GET" });
+  },
+
+  async listChatSuggestions(): Promise<{ suggestions: ChatSuggestion[] }> {
+    return request<{ suggestions: ChatSuggestion[] }>("/api/chats/suggestions", { method: "GET" });
   },
 
   async getChat(chatId: string): Promise<{ chat: { id: string; title: string; lastMessageAt: string; messages: ChatMessage[] } }> {

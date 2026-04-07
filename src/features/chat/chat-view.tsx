@@ -5,7 +5,7 @@ import { Check, FileText, Search, Send, Sparkles, ThumbsDown, ThumbsUp } from "l
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { api } from "@/services/api";
-import type { ChatMessage, DocumentItem, DocumentStatus } from "@/types/api";
+import type { ChatMessage, ChatSuggestion, DocumentItem, DocumentStatus } from "@/types/api";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,8 +22,8 @@ interface Message {
   feedback?: "none" | "up" | "down";
 }
 
-const suggestedQueries = [
-  "Summarize the Q4 report",
+const fallbackSuggestedQueries = [
+  "Summarize my latest uploaded document",
   "What are the key milestones?",
   "Compare revenue trends",
   "List action items from meetings",
@@ -125,6 +125,7 @@ export function ChatView() {
   const [mobileDocSheetOpen, setMobileDocSheetOpen] = useState(false);
   const [chatId, setChatId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<ChatSuggestion[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -158,6 +159,18 @@ export function ChatView() {
   useEffect(() => {
     void loadDocuments();
   }, [loadDocuments]);
+
+  useEffect(() => {
+    const loadSuggestions = async () => {
+      try {
+        const data = await api.listChatSuggestions();
+        setSuggestions(data.suggestions);
+      } catch {
+        setSuggestions([]);
+      }
+    };
+    void loadSuggestions();
+  }, []);
 
   const hasPendingProcessing = useMemo(
     () => documents.some((d) => d.status === "uploaded" || d.status === "processing"),
@@ -407,7 +420,7 @@ export function ChatView() {
         {/* Suggested queries */}
         {messages.length <= 1 && (
           <div className="px-4 pb-2 flex flex-wrap gap-2">
-            {suggestedQueries.map((q) => (
+            {(suggestions.length > 0 ? suggestions.map((s) => s.text) : fallbackSuggestedQueries).map((q) => (
               <button
                 key={q}
                 type="button"
