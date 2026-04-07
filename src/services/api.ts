@@ -2,6 +2,8 @@ import type {
   ApiErrorBody,
   ApiSuccess,
   AuthPayload,
+  ChatMessage,
+  ChatSummary,
   DocumentItem,
   RefreshTokenPayload,
   SafeUser,
@@ -135,5 +137,32 @@ export const api = {
 
   async deleteDocument(documentId: string): Promise<{ deleted: boolean }> {
     return request<{ deleted: boolean }>(`/api/documents/${documentId}`, { method: "DELETE" });
+  },
+
+  async listChats(): Promise<{ chats: ChatSummary[] }> {
+    return request<{ chats: ChatSummary[] }>("/api/chats", { method: "GET" });
+  },
+
+  async getChat(chatId: string): Promise<{ chat: { id: string; title: string; lastMessageAt: string; messages: ChatMessage[] } }> {
+    return request<{ chat: { id: string; title: string; lastMessageAt: string; messages: ChatMessage[] } }>(
+      `/api/chats/${chatId}`,
+      { method: "GET" }
+    );
+  },
+
+  async askChat(body: {
+    message: string;
+    chatId?: string;
+    documentIds?: string[];
+  }): Promise<{
+    chat: { id: string; title: string; lastMessageAt: string };
+    userMessage: ChatMessage;
+    assistantMessage: ChatMessage;
+  }> {
+    return request<{
+      chat: { id: string; title: string; lastMessageAt: string };
+      userMessage: ChatMessage;
+      assistantMessage: ChatMessage;
+    }>("/api/chats/ask", { method: "POST", body });
   },
 };

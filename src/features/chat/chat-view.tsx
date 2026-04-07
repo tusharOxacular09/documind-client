@@ -2,7 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Check, FileText, Search, Send, Sparkles, ThumbsDown, ThumbsUp } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 
+import { api } from "@/services/api";
+import type { ChatMessage, DocumentItem } from "@/types/api";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
@@ -14,13 +18,6 @@ interface Message {
   timestamp: string;
   sources?: { doc: string; snippet: string }[];
 }
-
-const mockDocuments = [
-  { id: "1", name: "Q4 Financial Report.pdf" },
-  { id: "2", name: "Product Roadmap.docx" },
-  { id: "3", name: "Marketing Pitch.pptx" },
-  { id: "4", name: "Team Meeting Notes.pdf" },
-];
 
 const suggestedQueries = [
   "Summarize the Q4 report",
@@ -40,58 +37,108 @@ const initialMessages: Message[] = [
 ];
 
 export function ChatView() {
-  const messageIdSeq = useRef(1);
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
-  const [selectedDocs, setSelectedDocs] = useState<string[]>(["1"]);
+  const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
+  const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [searchAll, setSearchAll] = useState(false);
   const [typing, setTyping] = useState(false);
   const [docPanelOpen, setDocPanelOpen] = useState(true);
+  const [chatId, setChatId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, typing]);
 
+  useEffect(() => {
+    setChatId(searchParams.get("chatId"));
+  }, [searchParams]);
+
+  useEffect(() => {
+    const loadDocs = async () => {
+      try {
+        const data = await api.listDocuments();
+        setDocuments(data.documents);
+        if (data.documents.length > 0) {
+          setSelectedDocs((prev) => (prev.length > 0 ? prev : [data.documents[0].id]));
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load documents");
+      }
+    };
+    void loadDocs();
+  }, []);
+
+  useEffect(() => {
+    if (!chatId) {
+      setMessages(initialMessages);
+      return;
+    }
+    const loadChat = async () => {
+      try {
+        const data = await api.getChat(chatId);
+        const mapped: Message[] = data.chat.messages.map((m: ChatMessage) => ({
+          id: m.id,
+          role: m.role === "assistant" ? "ai" : "user",
+          content: m.content,
+          timestamp: new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          sources: m.citations.map((c) => ({ doc: c.documentName, snippet: c.snippet })),
+        }));
+        setMessages(mapped.length ? mapped : initialMessages);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load chat");
+      }
+    };
+    void loadChat();
+  }, [chatId]);
+
   const toggleDoc = (id: string) => {
     setSelectedDocs((prev) => (prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id]));
   };
 
-  const handleSend = (text?: string) => {
-    const msg = text || input;
-    if (!msg.trim()) return;
-
-    const userMsg: Message = {
-      id: String(++messageIdSeq.current),
-      role: "user",
-      content: msg,
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    };
-
-    setMessages((prev) => [...prev, userMsg]);
+  const handleSend = async (text?: string) => {
+    const msg = (text || input).trim();
+    if (!msg) return;
     setInput("");
     setTyping(true);
-
-    setTimeout(() => {
-      const aiMsg: Message = {
-        id: String(++messageIdSeq.current),
-        role: "ai",
-        content: `Based on the selected documents, here's what I found:\n\nThe Q4 Financial Report shows a **15% revenue increase** compared to Q3, driven primarily by enterprise client expansion. The product roadmap indicates three major feature releases planned for the next quarter.`,
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        sources: [
-          {
-            doc: "Q4 Financial Report.pdf",
-            snippet: "Revenue increased by 15% quarter-over-quarter, reaching $4.2M in total...",
-          },
-          {
-            doc: "Product Roadmap.docx",
-            snippet: "Three major feature releases are planned for Q1 2026: AI search, batch processing...",
-          },
-        ],
+    setError(null);
+    try {
+      const payload = await api.askChat({
+        chatId: chatId ?? undefined,
+        message: msg,
+        documentIds: searchAll ? undefined : selectedDocs,
+      });
+      const userMsg: Message = {
+        id: payload.userMessage.id,
+        role: "user",
+        content: payload.userMessage.content,
+        timestamp: new Date(payload.userMessage.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
-      setMessages((prev) => [...prev, aiMsg]);
+      const aiMsg: Message = {
+        id: payload.assistantMessage.id,
+        role: "ai",
+        content: payload.assistantMessage.content,
+        timestamp: new Date(payload.assistantMessage.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        sources: payload.assistantMessage.citations.map((c) => ({ doc: c.documentName, snippet: c.snippet })),
+      };
+      setMessages((prev) => {
+        const base = prev.length === 1 && prev[0].id === "1" ? [] : prev;
+        return [...base, userMsg, aiMsg];
+      });
+
+      if (!chatId) {
+        setChatId(payload.chat.id);
+        router.replace(`/chat?chatId=${payload.chat.id}`);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to send message");
+    } finally {
       setTyping(false);
-    }, 2000);
+    }
   };
 
   return (
@@ -112,7 +159,7 @@ export function ChatView() {
           </div>
         </div>
         <div className="flex-1 overflow-auto p-2 space-y-1 scrollbar-thin">
-          {mockDocuments.map((doc) => (
+          {documents.map((doc) => (
             <button
               key={doc.id}
               type="button"
@@ -135,6 +182,14 @@ export function ChatView() {
 
       {/* Chat area */}
       <div className="flex-1 flex flex-col min-w-0">
+        {error && (
+          <div className="p-4">
+            <Alert variant="destructive">
+              <AlertTitle>Chat error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          </div>
+        )}
         {/* Messages */}
         <div className="flex-1 overflow-auto p-4 space-y-4 scrollbar-thin">
           {messages.map((msg) => (
@@ -254,13 +309,13 @@ export function ChatView() {
                 placeholder="Ask about your documents..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
+                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && void handleSend()}
               />
               <Button
                 size="icon"
                 className="h-8 w-8 rounded-lg shrink-0"
                 disabled={!input.trim() || typing}
-                onClick={() => handleSend()}
+                onClick={() => void handleSend()}
               >
                 <Send className="w-4 h-4" />
               </Button>

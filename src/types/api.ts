@@ -41,3 +41,25 @@ export type DocumentItem = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type ChatCitation = {
+  documentId?: string;
+  documentName: string;
+  snippet: string;
+};
+
+export type ChatMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  createdAt: string;
+  citations: ChatCitation[];
+};
+
+export type ChatSummary = {
+  id: string;
+  title: string;
+  lastMessageAt: string;
+  messageCount: number;
+  lastMessagePreview: string;
+};
