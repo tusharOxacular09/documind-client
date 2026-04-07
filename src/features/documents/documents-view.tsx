@@ -1,82 +1,142 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Eye, FileText, FileType2, Presentation, Trash2, Upload } from "lucide-react";
 
+import { api } from "@/services/api";
+import type { DocumentItem, DocumentType } from "@/types/api";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-interface Document {
-  id: string;
-  name: string;
-  type: "pdf" | "docx" | "pptx";
-  date: string;
-  status: "processing" | "ready";
-  size: string;
-}
-
-const mockDocs: Document[] = [
-  { id: "1", name: "Q4 Financial Report.pdf", type: "pdf", date: "Apr 5, 2026", status: "ready", size: "2.4 MB" },
-  { id: "2", name: "Product Roadmap.docx", type: "docx", date: "Apr 4, 2026", status: "ready", size: "1.1 MB" },
-  { id: "3", name: "Team Meeting Notes.pdf", type: "pdf", date: "Apr 3, 2026", status: "processing", size: "890 KB" },
-  { id: "4", name: "Marketing Pitch.pptx", type: "pptx", date: "Apr 2, 2026", status: "ready", size: "5.2 MB" },
-];
-
-const typeIcons = { pdf: FileText, docx: FileType2, pptx: Presentation };
+const typeIcons: Record<DocumentType, typeof FileText> = {
+  pdf: FileText,
+  docx: FileType2,
+  ppt: Presentation,
+  pptx: Presentation,
+};
 const typeColors = {
   pdf: "bg-destructive/10 text-destructive",
   docx: "bg-info/10 text-info",
+  ppt: "bg-warning/10 text-warning",
   pptx: "bg-warning/10 text-warning",
 };
+const supportedExt = new Set<DocumentType>(["pdf", "docx", "ppt", "pptx"]);
 
 export function DocumentsView() {
-  const [docs, setDocs] = useState<Document[]>(mockDocs);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [docs, setDocs] = useState<DocumentItem[]>([]);
   const [dragActive, setDragActive] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
-  const simulateUpload = () => {
-    setUploading(true);
-    setUploadProgress(0);
-    const interval = setInterval(() => {
-      setUploadProgress((p) => {
-        if (p >= 100) {
-          clearInterval(interval);
-          setUploading(false);
-          setDocs((prev) => [
-            {
-              id: String(Date.now()),
-              name: "New Upload.pdf",
-              type: "pdf",
-              date: "Just now",
-              status: "processing",
-              size: "1.5 MB",
-            },
-            ...prev,
-          ]);
-          return 0;
-        }
-        return p + 10;
-      });
-    }, 200);
-  };
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setDragActive(false);
-    simulateUpload();
+  const loadDocuments = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await api.listDocuments();
+      setDocs(data.documents);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load documents");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const handleDelete = (id: string) => setDocs((prev) => prev.filter((d) => d.id !== id));
+  useEffect(() => {
+    void loadDocuments();
+  }, [loadDocuments]);
+
+  const formatSize = (sizeBytes: number): string => {
+    if (sizeBytes < 1024) return `${sizeBytes} B`;
+    if (sizeBytes < 1024 * 1024) return `${(sizeBytes / 1024).toFixed(1)} KB`;
+    return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const formatDate = (isoDate: string): string => {
+    const date = new Date(isoDate);
+    return date.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
+  const mapExt = useCallback((fileName: string): DocumentType | null => {
+    const ext = fileName.split(".").pop()?.toLowerCase();
+    if (!ext || !supportedExt.has(ext as DocumentType)) return null;
+    return ext as DocumentType;
+  }, []);
+
+  const uploadFiles = useCallback(
+    async (files: FileList | File[]): Promise<void> => {
+      const fileArray = Array.from(files);
+      if (fileArray.length === 0) return;
+
+      setUploading(true);
+      setError(null);
+      try {
+        for (const file of fileArray) {
+          const type = mapExt(file.name);
+          if (!type) {
+            throw new Error(`Unsupported file type for "${file.name}"`);
+          }
+          await api.createDocument({
+            name: file.name,
+            type,
+            sizeBytes: file.size,
+          });
+        }
+        await loadDocuments();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to upload document");
+      } finally {
+        setUploading(false);
+      }
+    },
+    [loadDocuments, mapExt]
+  );
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setDragActive(false);
+      void uploadFiles(e.dataTransfer.files);
+    },
+    [uploadFiles]
+  );
+
+  const handleDelete = async (id: string) => {
+    setError(null);
+    try {
+      await api.deleteDocument(id);
+      setDocs((prev) => prev.filter((d) => d.id !== id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete document");
+    }
+  };
+
+  const countText = useMemo(() => {
+    if (loading) return "Loading documents...";
+    return `${docs.length} documents uploaded`;
+  }, [docs.length, loading]);
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Documents</h1>
-          <p className="text-muted-foreground mt-1">{docs.length} documents uploaded</p>
+          <p className="text-muted-foreground mt-1">{countText}</p>
         </div>
       </div>
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertTitle>Something went wrong</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
       {/* Upload area */}
       <div
@@ -91,16 +151,7 @@ export function DocumentsView() {
         onDrop={handleDrop}
       >
         {uploading ? (
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">Uploading...</p>
-            <div className="w-full max-w-xs mx-auto h-2 rounded-full bg-secondary overflow-hidden">
-              <div
-                className="h-full bg-primary rounded-full transition-all duration-200"
-                style={{ width: `${uploadProgress}%` }}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">{uploadProgress}%</p>
-          </div>
+          <p className="text-sm text-muted-foreground">Uploading document metadata...</p>
         ) : (
           <>
             <Upload className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
@@ -111,8 +162,20 @@ export function DocumentsView() {
               <Badge variant="secondary">DOCX</Badge>
               <Badge variant="secondary">PPTX</Badge>
             </div>
-            <input type="file" className="hidden" accept=".pdf,.docx,.pptx" />
-            <Button variant="outline" className="mt-4" onClick={simulateUpload}>
+            <input
+              ref={inputRef}
+              type="file"
+              className="hidden"
+              accept=".pdf,.docx,.ppt,.pptx"
+              multiple
+              onChange={(e) => {
+                if (e.target.files) {
+                  void uploadFiles(e.target.files);
+                  e.target.value = "";
+                }
+              }}
+            />
+            <Button variant="outline" className="mt-4" onClick={() => inputRef.current?.click()}>
               <Upload className="w-4 h-4 mr-2" /> Upload Files
             </Button>
           </>
@@ -148,7 +211,7 @@ export function DocumentsView() {
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate">{doc.name}</p>
                       <p className="text-xs text-muted-foreground sm:hidden">
-                        {doc.size} · {doc.date}
+                        {formatSize(doc.sizeBytes)} · {formatDate(doc.createdAt)}
                       </p>
                     </div>
                   </div>
@@ -157,14 +220,26 @@ export function DocumentsView() {
                       {doc.type.toUpperCase()}
                     </span>
                   </div>
-                  <div className="hidden sm:block sm:col-span-2 text-sm text-muted-foreground">{doc.date}</div>
+                  <div className="hidden sm:block sm:col-span-2 text-sm text-muted-foreground">
+                    {formatDate(doc.createdAt)}
+                  </div>
                   <div className="hidden sm:block sm:col-span-1">
                     <span
                       className={`text-xs px-2 py-1 rounded-full font-medium ${
-                        doc.status === "ready" ? "bg-accent text-accent-foreground" : "bg-warning/10 text-warning"
+                        doc.status === "ready"
+                          ? "bg-accent text-accent-foreground"
+                          : doc.status === "failed"
+                            ? "bg-destructive/10 text-destructive"
+                            : "bg-warning/10 text-warning"
                       }`}
                     >
-                      {doc.status === "ready" ? "Ready" : "Processing"}
+                      {doc.status === "ready"
+                        ? "Ready"
+                        : doc.status === "failed"
+                          ? "Failed"
+                          : doc.status === "uploaded"
+                            ? "Uploaded"
+                            : "Processing"}
                     </span>
                   </div>
                   <div className="sm:col-span-2 flex items-center gap-1 justify-end">
@@ -175,7 +250,7 @@ export function DocumentsView() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-destructive hover:text-destructive"
-                      onClick={() => handleDelete(doc.id)}
+                      onClick={() => void handleDelete(doc.id)}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>

@@ -27,3 +27,17 @@ export type AuthPayload = {
 export type RefreshTokenPayload = {
   accessToken: string;
 };
+
+export type DocumentStatus = "uploaded" | "processing" | "ready" | "failed";
+
+export type DocumentType = "pdf" | "docx" | "ppt" | "pptx";
+
+export type DocumentItem = {
+  id: string;
+  name: string;
+  type: DocumentType;
+  sizeBytes: number;
+  status: DocumentStatus;
+  createdAt: string;
+  updatedAt: string;
+};

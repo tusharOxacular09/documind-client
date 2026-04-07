@@ -1,4 +1,11 @@
-import type { ApiErrorBody, ApiSuccess, AuthPayload, RefreshTokenPayload, SafeUser } from "@/types/api";
+import type {
+  ApiErrorBody,
+  ApiSuccess,
+  AuthPayload,
+  DocumentItem,
+  RefreshTokenPayload,
+  SafeUser,
+} from "@/types/api";
 import { authStorage } from "@/store/auth-storage";
 
 const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://localhost:5000";
@@ -114,5 +121,19 @@ export const api = {
 
   async updateProfile(body: { name: string; email: string }): Promise<{ user: SafeUser }> {
     return request<{ user: SafeUser }>("/api/auth/profile", { method: "PUT", body });
+  },
+
+  async listDocuments(): Promise<{ documents: DocumentItem[] }> {
+    return request<{ documents: DocumentItem[] }>("/api/documents", { method: "GET" });
+  },
+
+  async createDocument(body: { name: string; type: "pdf" | "docx" | "ppt" | "pptx"; sizeBytes: number }): Promise<{
+    document: DocumentItem;
+  }> {
+    return request<{ document: DocumentItem }>("/api/documents", { method: "POST", body });
+  },
+
+  async deleteDocument(documentId: string): Promise<{ deleted: boolean }> {
+    return request<{ deleted: boolean }>(`/api/documents/${documentId}`, { method: "DELETE" });
   },
 };
