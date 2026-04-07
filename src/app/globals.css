@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -55,7 +57,7 @@
     --shadow-sm: 0 1px 2px 0 hsl(220 20% 10% / 0.04);
     --shadow-md: 0 4px 12px -2px hsl(220 20% 10% / 0.08);
     --shadow-lg: 0 12px 32px -4px hsl(220 20% 10% / 0.12);
-    --shadow-glow: 0 0 20px hsl(172deg 66% 40% / 0.15);
+    --shadow-glow: 0 0 20px hsl(172 66% 40% / 0.15);
   }
 
   .dark {

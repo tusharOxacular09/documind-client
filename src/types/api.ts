@@ -23,3 +23,7 @@ export type AuthPayload = {
   refreshToken: string;
   user: SafeUser;
 };
+
+export type RefreshTokenPayload = {
+  accessToken: string;
+};

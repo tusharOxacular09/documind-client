@@ -1,4 +1,4 @@
-import type { ApiErrorBody, ApiSuccess, AuthPayload, SafeUser } from "@/types/api";
+import type { ApiErrorBody, ApiSuccess, AuthPayload, RefreshTokenPayload, SafeUser } from "@/types/api";
 import { authStorage } from "@/store/auth-storage";
 
 const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://localhost:5000";
@@ -13,7 +13,32 @@ async function parseJson<T>(res: Response): Promise<T> {
 
 type RequestInitWithBody = Omit<RequestInit, "body"> & { body?: unknown };
 
-async function request<T>(path: string, init: RequestInitWithBody = {}): Promise<T> {
+function isNoAuthPath(path: string): boolean {
+  return path === "/api/auth/login" || path === "/api/auth/register" || path === "/api/auth/refresh";
+}
+
+async function tryRefreshAccessToken(): Promise<boolean> {
+  const refreshToken = authStorage.getRefreshToken();
+  if (!refreshToken) return false;
+
+  try {
+    const res = await fetch(`${baseUrl}/api/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken }),
+    });
+    const payload = await parseJson<ApiSuccess<RefreshTokenPayload> | ApiErrorBody>(res);
+    if (payload.status !== "success" || !res.ok) {
+      return false;
+    }
+    authStorage.setAccessToken(payload.data.accessToken);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function request<T>(path: string, init: RequestInitWithBody = {}, retried = false): Promise<T> {
   const headers = new Headers(init.headers);
   if (init.body !== undefined && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
@@ -30,7 +55,20 @@ async function request<T>(path: string, init: RequestInitWithBody = {}): Promise
     body: init.body === undefined ? undefined : JSON.stringify(init.body),
   });
 
-  const payload = await parseJson<ApiSuccess<T> | ApiErrorBody>(res);
+  let payload: ApiSuccess<T> | ApiErrorBody;
+  try {
+    payload = await parseJson<ApiSuccess<T> | ApiErrorBody>(res);
+  } catch {
+    throw new Error("Invalid response from server");
+  }
+
+  if (res.status === 401 && !retried && !isNoAuthPath(path) && authStorage.getRefreshToken()) {
+    const refreshed = await tryRefreshAccessToken();
+    if (refreshed) {
+      return request<T>(path, init, true);
+    }
+    authStorage.clear();
+  }
 
   if (payload.status === "error") {
     throw new Error(payload.message || "Request failed");
@@ -54,7 +92,27 @@ export const api = {
     return request<AuthPayload>("/api/auth/register", { method: "POST", body });
   },
 
+  async refresh(refreshToken: string): Promise<RefreshTokenPayload> {
+    const res = await fetch(`${baseUrl}/api/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken }),
+    });
+    const payload = await parseJson<ApiSuccess<RefreshTokenPayload> | ApiErrorBody>(res);
+    if (payload.status === "error") {
+      throw new Error(payload.message || "Refresh failed");
+    }
+    if (!res.ok) {
+      throw new Error(payload.message || `HTTP ${res.status}`);
+    }
+    return payload.data;
+  },
+
   async me(): Promise<{ user: SafeUser }> {
     return request<{ user: SafeUser }>("/api/auth/me", { method: "GET" });
+  },
+
+  async updateProfile(body: { name: string; email: string }): Promise<{ user: SafeUser }> {
+    return request<{ user: SafeUser }>("/api/auth/profile", { method: "PUT", body });
   },
 };

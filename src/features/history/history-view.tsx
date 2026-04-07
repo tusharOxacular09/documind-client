@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageSquare, Clock, ChevronRight } from "lucide-react";
+import { ChevronRight, Clock, MessageSquare } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 const conversations = [

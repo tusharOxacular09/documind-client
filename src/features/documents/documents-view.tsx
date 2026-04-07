@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { FileText, Upload, Trash2, Eye, FileType2, Presentation } from "lucide-react";
+import { Eye, FileText, FileType2, Presentation, Trash2, Upload } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 interface Document {
   id: string;
@@ -23,7 +23,11 @@ const mockDocs: Document[] = [
 ];
 
 const typeIcons = { pdf: FileText, docx: FileType2, pptx: Presentation };
-const typeColors = { pdf: "bg-destructive/10 text-destructive", docx: "bg-info/10 text-info", pptx: "bg-warning/10 text-warning" };
+const typeColors = {
+  pdf: "bg-destructive/10 text-destructive",
+  docx: "bg-info/10 text-info",
+  pptx: "bg-warning/10 text-warning",
+};
 
 export function DocumentsView() {
   const [docs, setDocs] = useState<Document[]>(mockDocs);
@@ -74,6 +78,7 @@ export function DocumentsView() {
         </div>
       </div>
 
+      {/* Upload area */}
       <div
         className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
           dragActive ? "border-primary bg-accent" : "border-border hover:border-primary/50"
@@ -114,6 +119,7 @@ export function DocumentsView() {
         )}
       </div>
 
+      {/* Documents list */}
       {docs.length === 0 ? (
         <div className="text-center py-16 rounded-xl border bg-card">
           <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-3" />

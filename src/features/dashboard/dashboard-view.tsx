@@ -1,9 +1,6 @@
 "use client";
 
 import { Activity, Clock, FileText, MessageSquare } from "lucide-react";
-import { startTransition, useEffect, useState } from "react";
-
-import { authStorage } from "@/store/auth-storage";
 
 const stats = [
   { label: "Total Documents", value: "24", icon: FileText, color: "text-primary" },
@@ -19,22 +16,15 @@ const recentDocs = [
 ];
 
 export function DashboardView() {
-  const [firstName, setFirstName] = useState("there");
-
-  useEffect(() => {
-    const user = authStorage.getUser();
-    if (user?.name) {
-      startTransition(() => setFirstName(user.name.split(" ")[0] ?? user.name));
-    }
-  }, []);
-
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-8 animate-fade-in">
+      {/* Welcome */}
       <div>
-        <h1 className="text-2xl font-semibold">Welcome back, {firstName} 👋</h1>
-        <p className="text-muted-foreground mt-1">Here&apos;s what&apos;s happening with your documents.</p>
+        <h1 className="text-2xl font-semibold">Welcome back, John 👋</h1>
+        <p className="text-muted-foreground mt-1">{"Here's what's happening with your documents."}</p>
       </div>
 
+      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {stats.map((s) => (
           <div key={s.label} className="rounded-xl border bg-card p-5 shadow-sm hover:shadow-md transition-shadow">
@@ -51,6 +41,7 @@ export function DashboardView() {
         ))}
       </div>
 
+      {/* Recent Documents */}
       <div>
         <h2 className="text-lg font-semibold mb-4">Recent Documents</h2>
         <div className="rounded-xl border bg-card shadow-sm overflow-hidden">

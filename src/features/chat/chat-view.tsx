@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Send, FileText, ThumbsUp, ThumbsDown, Sparkles, Check, Search } from "lucide-react";
+import { Check, FileText, Search, Send, Sparkles, ThumbsDown, ThumbsUp } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -40,7 +40,7 @@ const initialMessages: Message[] = [
 ];
 
 export function ChatView() {
-  const messageIdRef = useRef(100);
+  const messageIdSeq = useRef(1);
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [selectedDocs, setSelectedDocs] = useState<string[]>(["1"]);
@@ -62,7 +62,7 @@ export function ChatView() {
     if (!msg.trim()) return;
 
     const userMsg: Message = {
-      id: String(++messageIdRef.current),
+      id: String(++messageIdSeq.current),
       role: "user",
       content: msg,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
@@ -74,7 +74,7 @@ export function ChatView() {
 
     setTimeout(() => {
       const aiMsg: Message = {
-        id: String(++messageIdRef.current),
+        id: String(++messageIdSeq.current),
         role: "ai",
         content: `Based on the selected documents, here's what I found:\n\nThe Q4 Financial Report shows a **15% revenue increase** compared to Q3, driven primarily by enterprise client expansion. The product roadmap indicates three major feature releases planned for the next quarter.`,
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
@@ -96,6 +96,7 @@ export function ChatView() {
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] animate-fade-in">
+      {/* Document selector panel */}
       <div
         className={cn(
           "border-r bg-card flex flex-col transition-all duration-300 shrink-0",
@@ -132,7 +133,9 @@ export function ChatView() {
         </div>
       </div>
 
+      {/* Chat area */}
       <div className="flex-1 flex flex-col min-w-0">
+        {/* Messages */}
         <div className="flex-1 overflow-auto p-4 space-y-4 scrollbar-thin">
           {messages.map((msg) => (
             <div key={msg.id} className={cn("flex", msg.role === "user" ? "justify-end" : "justify-start")}>
@@ -156,7 +159,8 @@ export function ChatView() {
                   <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
                 </div>
 
-                {msg.sources && msg.sources.length > 0 ? (
+                {/* Sources */}
+                {msg.sources && msg.sources.length > 0 && (
                   <div className="space-y-2 mt-2">
                     <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
                       <Search className="w-3 h-3" /> Sources
@@ -170,9 +174,10 @@ export function ChatView() {
                       </div>
                     ))}
                   </div>
-                ) : null}
+                )}
 
-                {msg.role === "ai" && msg.id !== "1" ? (
+                {/* Feedback */}
+                {msg.role === "ai" && msg.id !== "1" && (
                   <div className="flex items-center gap-1 mt-1">
                     <Button variant="ghost" size="icon" className="h-7 w-7">
                       <ThumbsUp className="w-3.5 h-3.5" />
@@ -181,7 +186,7 @@ export function ChatView() {
                       <ThumbsDown className="w-3.5 h-3.5" />
                     </Button>
                   </div>
-                ) : null}
+                )}
 
                 <p
                   className={cn(
@@ -195,7 +200,8 @@ export function ChatView() {
             </div>
           ))}
 
-          {typing ? (
+          {/* Typing indicator */}
+          {typing && (
             <div className="flex justify-start">
               <div className="bg-card border rounded-2xl rounded-tl-md px-4 py-3">
                 <div className="flex gap-1.5">
@@ -211,11 +217,12 @@ export function ChatView() {
                 </div>
               </div>
             </div>
-          ) : null}
+          )}
           <div ref={bottomRef} />
         </div>
 
-        {messages.length <= 1 ? (
+        {/* Suggested queries */}
+        {messages.length <= 1 && (
           <div className="px-4 pb-2 flex flex-wrap gap-2">
             {suggestedQueries.map((q) => (
               <button
@@ -228,8 +235,9 @@ export function ChatView() {
               </button>
             ))}
           </div>
-        ) : null}
+        )}
 
+        {/* Input */}
         <div className="border-t bg-card p-4">
           <div className="flex items-center gap-2 max-w-4xl mx-auto">
             <Button

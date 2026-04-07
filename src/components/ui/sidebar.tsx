@@ -1,4 +1,4 @@
-"use client";
+"use client"
 
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
@@ -533,7 +533,11 @@ const SidebarMenuSkeleton = React.forwardRef<
     showIcon?: boolean;
   }
 >(({ className, showIcon = false, ...props }, ref) => {
-  const skeletonTextWidth = "70%";
+  // Random width between 50 to 90% (matches docuchat-ui-main).
+  const width = React.useMemo(() => {
+    // eslint-disable-next-line react-hooks/purity -- intentional skeleton variation per docuchat design
+    return `${Math.floor(Math.random() * 40) + 50}%`;
+  }, []);
 
   return (
     <div
@@ -548,7 +552,7 @@ const SidebarMenuSkeleton = React.forwardRef<
         data-sidebar="menu-skeleton-text"
         style={
           {
-            "--skeleton-width": skeletonTextWidth,
+            "--skeleton-width": width,
           } as React.CSSProperties
         }
       />
