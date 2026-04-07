@@ -135,6 +135,15 @@ export const api = {
     return request<{ document: DocumentItem }>("/api/documents", { method: "POST", body });
   },
 
+  async uploadDocument(body: {
+    name: string;
+    type: "pdf" | "docx" | "ppt" | "pptx";
+    sizeBytes: number;
+    contentBase64: string;
+  }): Promise<{ document: DocumentItem }> {
+    return request<{ document: DocumentItem }>("/api/documents/upload", { method: "POST", body });
+  },
+
   async deleteDocument(documentId: string): Promise<{ deleted: boolean }> {
     return request<{ deleted: boolean }>(`/api/documents/${documentId}`, { method: "DELETE" });
   },

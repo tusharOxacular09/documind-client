@@ -82,10 +82,22 @@ export function DocumentsView() {
           if (!type) {
             throw new Error(`Unsupported file type for "${file.name}"`);
           }
-          await api.createDocument({
+          const contentBase64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              const result = typeof reader.result === "string" ? reader.result : "";
+              const base64 = result.includes(",") ? result.split(",")[1] : result;
+              resolve(base64);
+            };
+            reader.onerror = () => reject(new Error(`Failed to read "${file.name}"`));
+            reader.readAsDataURL(file);
+          });
+
+          await api.uploadDocument({
             name: file.name,
             type,
             sizeBytes: file.size,
+            contentBase64,
           });
         }
         await loadDocuments();
@@ -151,7 +163,7 @@ export function DocumentsView() {
         onDrop={handleDrop}
       >
         {uploading ? (
-          <p className="text-sm text-muted-foreground">Uploading document metadata...</p>
+          <p className="text-sm text-muted-foreground">Uploading files...</p>
         ) : (
           <>
             <Upload className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
