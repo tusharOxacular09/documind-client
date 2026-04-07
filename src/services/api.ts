@@ -174,4 +174,15 @@ export const api = {
       assistantMessage: ChatMessage;
     }>("/api/chats/ask", { method: "POST", body });
   },
+
+  async setMessageFeedback(chatId: string, messageId: string, feedback: "up" | "down" | "none"): Promise<{
+    chatId: string;
+    messageId: string;
+    feedback: "up" | "down" | "none";
+  }> {
+    return request<{ chatId: string; messageId: string; feedback: "up" | "down" | "none" }>(
+      `/api/chats/${chatId}/messages/${messageId}/feedback`,
+      { method: "POST", body: { feedback } }
+    );
+  },
 };

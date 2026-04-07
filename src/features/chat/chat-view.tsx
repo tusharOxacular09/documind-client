@@ -17,6 +17,7 @@ interface Message {
   content: string;
   timestamp: string;
   sources?: { doc: string; snippet: string }[];
+  feedback?: "none" | "up" | "down";
 }
 
 const suggestedQueries = [
@@ -87,6 +88,7 @@ export function ChatView() {
           content: m.content,
           timestamp: new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           sources: m.citations.map((c) => ({ doc: c.documentName, snippet: c.snippet })),
+          feedback: m.feedback,
         }));
         setMessages(mapped.length ? mapped : initialMessages);
       } catch (err) {
@@ -124,6 +126,7 @@ export function ChatView() {
         content: payload.assistantMessage.content,
         timestamp: new Date(payload.assistantMessage.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         sources: payload.assistantMessage.citations.map((c) => ({ doc: c.documentName, snippet: c.snippet })),
+        feedback: payload.assistantMessage.feedback,
       };
       setMessages((prev) => {
         const base = prev.length === 1 && prev[0].id === "1" ? [] : prev;
@@ -138,6 +141,20 @@ export function ChatView() {
       setError(err instanceof Error ? err.message : "Failed to send message");
     } finally {
       setTyping(false);
+    }
+  };
+
+  const handleFeedback = async (messageId: string, nextFeedback: "up" | "down") => {
+    if (!chatId) return;
+    const current = messages.find((m) => m.id === messageId)?.feedback ?? "none";
+    const feedbackToSend = current === nextFeedback ? "none" : nextFeedback;
+    try {
+      await api.setMessageFeedback(chatId, messageId, feedbackToSend);
+      setMessages((prev) =>
+        prev.map((msg) => (msg.id === messageId ? { ...msg, feedback: feedbackToSend } : msg))
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save feedback");
     }
   };
 
@@ -234,10 +251,20 @@ export function ChatView() {
                 {/* Feedback */}
                 {msg.role === "ai" && msg.id !== "1" && (
                   <div className="flex items-center gap-1 mt-1">
-                    <Button variant="ghost" size="icon" className="h-7 w-7">
+                    <Button
+                      variant={msg.feedback === "up" ? "secondary" : "ghost"}
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => void handleFeedback(msg.id, "up")}
+                    >
                       <ThumbsUp className="w-3.5 h-3.5" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7">
+                    <Button
+                      variant={msg.feedback === "down" ? "secondary" : "ghost"}
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => void handleFeedback(msg.id, "down")}
+                    >
                       <ThumbsDown className="w-3.5 h-3.5" />
                     </Button>
                   </div>

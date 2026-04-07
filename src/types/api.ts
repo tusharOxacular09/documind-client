@@ -54,6 +54,7 @@ export type ChatMessage = {
   content: string;
   createdAt: string;
   citations: ChatCitation[];
+  feedback: "none" | "up" | "down";
 };
 
 export type ChatSummary = {
