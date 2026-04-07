@@ -1,36 +1,109 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DocuMind — Frontend
 
-## Getting Started
+Web application for **DocuMind**, a multi-user document intelligence product: upload PDFs, Word, and PowerPoint files, wait for background processing, then chat with **grounded answers** and **source citations**. Built for the Trao Full-Stack AI Engineering assessment.
 
-First, run the development server:
+**Pair with:** [documind-server](../documind-server) (REST API). If you cloned only this repo, add the backend separately and point `NEXT_PUBLIC_API_URL` at it.
+
+---
+
+## Stack
+
+| Layer | Choice |
+|--------|--------|
+| Framework | **Next.js** (App Router), **React 19**, **TypeScript** |
+| Styling | **Tailwind CSS**, shadcn-style UI primitives |
+| Auth | JWT access + refresh; tokens in `localStorage`, session cookie for route guards |
+| Data | Native `fetch` wrapper in `src/services/api.ts` (auto-refresh on 401) |
+
+---
+
+## What’s implemented
+
+- **Auth** — Login, signup, protected dashboard routes, session bootstrap via `GET /api/auth/me`
+- **Documents** — List, upload (base64 JSON), delete, status polling (`uploaded` → `processing` → `ready` / `failed`), worker health strip
+- **Chat** — Document sidebar (desktop) + **mobile sheet** picker, “Search all” vs selected docs, suggested questions from API, citations, thumbs up/down on assistant messages
+- **History** — Conversation list → resume chat with `?chatId=`
+- **Dashboard** — Live stats from documents + chats (no mock data)
+- **Settings** — Profile update (`PUT /api/auth/profile`), device-local preference toggles
+- **UX** — Responsive layout, `dvh` / safe-area aware shell, accessible controls
+
+---
+
+## Prerequisites
+
+- **Node.js** 20+ (LTS recommended)
+- **Backend** running with MongoDB (see server README)
+
+---
+
+## Setup
+
+### 1. Install
+
+```bash
+npm install
+```
+
+### 2. Environment
+
+Create **`.env.local`** in this directory:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:5000
+```
+
+Use your deployed API origin in production (no trailing slash).
+
+### 3. Run (development)
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000). Ensure the API is up on the URL above.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 4. Production build
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm start
+```
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## Project layout (high level)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+src/
+  app/                 # App Router: pages, layouts, middleware
+  components/          # Shared UI, layout (sidebar, navbar), auth shell
+  features/            # Feature screens: chat, documents, dashboard, history, settings, auth
+  services/api.ts      # Typed API client
+  store/auth-storage.ts
+  types/api.ts         # DTOs shared with API responses
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## Deploying (e.g. Vercel)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Set **`NEXT_PUBLIC_API_URL`** to your public API base URL (HTTPS).
+2. Ensure the **server** allows your site origin in CORS (`CLIENT_ORIGIN` or equivalent on the backend).
+3. Same-site cookies: session cookie is `SameSite=Lax`; use HTTPS everywhere in production.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## Scripts
+
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | Dev server (Turbopack) |
+| `npm run build` | Production build |
+| `npm run start` | Serve production build |
+| `npm run lint` | ESLint |
+
+---
+
+## Full-system docs
+
+For architecture diagrams, auth model, RAG behavior, and API surface, see the **[repository root README](../README.md)** (if this repo lives inside a monorepo).
