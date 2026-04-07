@@ -42,6 +42,15 @@ export type DocumentItem = {
   updatedAt: string;
 };
 
+export type DocumentProcessingWorkerStats = {
+  running: boolean;
+  queued: number;
+  inProgress: number;
+  processedTotal: number;
+  failedTotal: number;
+  retriedTotal: number;
+};
+
 export type ChatCitation = {
   documentId?: string;
   documentName: string;

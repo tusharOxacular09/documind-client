@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Eye, FileText, FileType2, Presentation, Trash2, Upload } from "lucide-react";
 
 import { api } from "@/services/api";
-import type { DocumentItem, DocumentType } from "@/types/api";
+import type { DocumentItem, DocumentProcessingWorkerStats, DocumentType } from "@/types/api";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,17 @@ const typeColors = {
   pptx: "bg-warning/10 text-warning",
 };
 const supportedExt = new Set<DocumentType>(["pdf", "docx", "ppt", "pptx"]);
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+
+const formatUploadError = (message: string): string => {
+  if (message.includes("413") || message.toLowerCase().includes("10mb")) {
+    return "File is too large. Maximum upload size is 10 MB per file.";
+  }
+  if (message.toLowerCase().includes("size does not match")) {
+    return "Upload could not be verified. Try again, or refresh and re-upload.";
+  }
+  return message;
+};
 
 export function DocumentsView() {
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -30,23 +41,56 @@ export function DocumentsView() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [workerStats, setWorkerStats] = useState<DocumentProcessingWorkerStats | null>(null);
 
-  const loadDocuments = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const loadDocuments = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const data = await api.listDocuments();
       setDocs(data.documents);
+      if (!opts?.silent) setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load documents");
+      if (!opts?.silent) {
+        setError(err instanceof Error ? err.message : "Failed to load documents");
+      }
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     void loadDocuments();
   }, [loadDocuments]);
+
+  const hasPendingProcessing = useMemo(
+    () => docs.some((d) => d.status === "uploaded" || d.status === "processing"),
+    [docs]
+  );
+
+  useEffect(() => {
+    if (!hasPendingProcessing) return;
+    const id = window.setInterval(() => {
+      void loadDocuments({ silent: true });
+    }, 2500);
+    return () => window.clearInterval(id);
+  }, [hasPendingProcessing, loadDocuments]);
+
+  useEffect(() => {
+    const loadHealth = async () => {
+      try {
+        const data = await api.getDocumentProcessingHealth();
+        setWorkerStats(data.worker);
+      } catch {
+        setWorkerStats(null);
+      }
+    };
+    void loadHealth();
+    const id = window.setInterval(loadHealth, 5000);
+    return () => window.clearInterval(id);
+  }, []);
 
   const formatSize = (sizeBytes: number): string => {
     if (sizeBytes < 1024) return `${sizeBytes} B`;
@@ -82,6 +126,9 @@ export function DocumentsView() {
           if (!type) {
             throw new Error(`Unsupported file type for "${file.name}"`);
           }
+          if (file.size > MAX_UPLOAD_BYTES) {
+            throw new Error(`"${file.name}" exceeds the 10 MB limit.`);
+          }
           const contentBase64 = await new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = () => {
@@ -102,7 +149,8 @@ export function DocumentsView() {
         }
         await loadDocuments();
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to upload document");
+        const raw = err instanceof Error ? err.message : "Failed to upload document";
+        setError(formatUploadError(raw));
       } finally {
         setUploading(false);
       }
@@ -150,6 +198,22 @@ export function DocumentsView() {
         </Alert>
       )}
 
+      {workerStats && (
+        <div className="rounded-lg border bg-card px-4 py-3 text-sm text-muted-foreground flex flex-wrap gap-x-6 gap-y-1 items-center">
+          <span className="font-medium text-foreground">Processing worker</span>
+          <span>
+            Status:{" "}
+            <span className={workerStats.running ? "text-warning" : "text-muted-foreground"}>
+              {workerStats.running ? "active" : "idle"}
+            </span>
+          </span>
+          <span>Queued: {workerStats.queued}</span>
+          <span>In progress: {workerStats.inProgress}</span>
+          <span>Processed (session): {workerStats.processedTotal}</span>
+          <span>Failed: {workerStats.failedTotal}</span>
+        </div>
+      )}
+
       {/* Upload area */}
       <div
         className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
@@ -169,6 +233,9 @@ export function DocumentsView() {
             <Upload className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
             <p className="font-medium">Drag & drop files here</p>
             <p className="text-sm text-muted-foreground mt-1">or click to browse</p>
+            <p className="text-xs text-muted-foreground mt-2 max-w-md mx-auto">
+              Max 10 MB per file. Status updates automatically while documents are processing.
+            </p>
             <div className="flex items-center justify-center gap-2 mt-3">
               <Badge variant="secondary">PDF</Badge>
               <Badge variant="secondary">DOCX</Badge>

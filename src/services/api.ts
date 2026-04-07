@@ -5,6 +5,7 @@ import type {
   ChatMessage,
   ChatSummary,
   DocumentItem,
+  DocumentProcessingWorkerStats,
   RefreshTokenPayload,
   SafeUser,
 } from "@/types/api";
@@ -123,6 +124,12 @@ export const api = {
 
   async updateProfile(body: { name: string; email: string }): Promise<{ user: SafeUser }> {
     return request<{ user: SafeUser }>("/api/auth/profile", { method: "PUT", body });
+  },
+
+  async getDocumentProcessingHealth(): Promise<{ worker: DocumentProcessingWorkerStats }> {
+    return request<{ worker: DocumentProcessingWorkerStats }>("/api/documents/processing/health", {
+      method: "GET",
+    });
   },
 
   async listDocuments(): Promise<{ documents: DocumentItem[] }> {
