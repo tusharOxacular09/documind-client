@@ -72,15 +72,13 @@ export function DocumentsView() {
   );
 
   useEffect(() => {
-    if (!hasPendingProcessing) return;
-    const id = window.setInterval(() => {
-      void loadDocuments({ silent: true });
-    }, 2500);
-    return () => window.clearInterval(id);
-  }, [hasPendingProcessing, loadDocuments]);
+    if (!hasPendingProcessing) {
+      setWorkerStats(null);
+      return;
+    }
 
-  useEffect(() => {
-    const loadHealth = async () => {
+    const refresh = async () => {
+      await loadDocuments({ silent: true });
       try {
         const data = await api.getDocumentProcessingHealth();
         setWorkerStats(data.worker);
@@ -88,10 +86,13 @@ export function DocumentsView() {
         setWorkerStats(null);
       }
     };
-    void loadHealth();
-    const id = window.setInterval(loadHealth, 5000);
+
+    void refresh();
+    const id = window.setInterval(() => {
+      void refresh();
+    }, 2500);
     return () => window.clearInterval(id);
-  }, []);
+  }, [hasPendingProcessing, loadDocuments]);
 
   const formatSize = (sizeBytes: number): string => {
     if (sizeBytes < 1024) return `${sizeBytes} B`;
