@@ -300,7 +300,7 @@ export function ChatView() {
   };
 
   return (
-    <div className="flex h-full min-h-0 w-full animate-fade-in">
+    <div className="flex min-h-0 w-full flex-1 flex-row overflow-hidden animate-fade-in">
       {/* Document selector panel */}
       <div className="border-r bg-card hidden md:flex flex-col shrink-0 min-h-0 w-64 transition-all duration-300">
         <DocumentPickerSection
@@ -468,7 +468,7 @@ export function ChatView() {
         )}
 
         {/* Input */}
-        <div className="border-t bg-card p-4 shrink-0">
+        <div className="border-t bg-card shrink-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))]">
           {selectionNotReady && (
             <p className="text-xs text-amber-600 dark:text-amber-500 max-w-4xl mx-auto mb-2 px-1">
               Selected documents are still processing or failed. Answers may say there is not enough evidence until at
