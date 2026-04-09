@@ -40,6 +40,7 @@ export function DocumentsView() {
   const [dragActive, setDragActive] = useState(false);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [openingId, setOpeningId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [workerStats, setWorkerStats] = useState<DocumentProcessingWorkerStats | null>(null);
 
@@ -158,6 +159,33 @@ export function DocumentsView() {
       setDocs((prev) => prev.filter((d) => d.id !== id));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete document");
+    }
+  };
+
+  const handleOpen = async (doc: DocumentItem) => {
+    setError(null);
+    setOpeningId(doc.id);
+    try {
+      const { blob, filename, isPdf } = await api.getDocumentFile(doc.id);
+      const objectUrl = URL.createObjectURL(blob);
+      if (isPdf) {
+        window.open(objectUrl, "_blank", "noopener,noreferrer");
+        // Give the new tab time to read the blob URL.
+        window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+        return;
+      }
+
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = filename || doc.name || "download";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to open document");
+    } finally {
+      setOpeningId(null);
     }
   };
 
@@ -306,7 +334,14 @@ export function DocumentsView() {
                     </span>
                   </div>
                   <div className="sm:col-span-2 flex items-center gap-1 justify-end">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => void handleOpen(doc)}
+                      disabled={openingId === doc.id}
+                      title={doc.type === "pdf" ? "View PDF" : "Download file"}
+                    >
                       <Eye className="w-4 h-4" />
                     </Button>
                     <Button

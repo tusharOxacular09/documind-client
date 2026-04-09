@@ -131,6 +131,50 @@ async function requestFormData<T>(path: string, formData: FormData, retried = fa
   return payload.data;
 }
 
+async function requestBlob(
+  path: string,
+  init: Omit<RequestInit, "body"> = {},
+  retried = false
+): Promise<{ blob: Blob; contentType: string; filename: string; isPdf: boolean }> {
+  const headers = new Headers(init.headers);
+  const token = typeof window !== "undefined" ? authStorage.getAccessToken() : null;
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const res = await fetch(`${baseUrl}${path}`, { ...init, headers });
+
+  if (res.status === 401 && !retried && !isNoAuthPath(path) && authStorage.getRefreshToken()) {
+    const refreshed = await tryRefreshAccessToken();
+    if (refreshed) {
+      return requestBlob(path, init, true);
+    }
+    authStorage.clear();
+  }
+
+  if (!res.ok) {
+    // Attempt to parse standard API envelope error, otherwise fall back.
+    try {
+      const payload = await parseJson<ApiSuccess<unknown> | ApiErrorBody>(res);
+      if (payload && (payload as ApiErrorBody).status === "error") {
+        throw new Error((payload as ApiErrorBody).message || `HTTP ${res.status}`);
+      }
+    } catch {
+      // ignore JSON parsing failure
+    }
+    throw new Error(`HTTP ${res.status}`);
+  }
+
+  const contentType = res.headers.get("Content-Type") ?? "application/octet-stream";
+  const disposition = res.headers.get("Content-Disposition") ?? "";
+  const match = /filename="([^"]+)"/i.exec(disposition);
+  const filename = match?.[1] ? decodeURIComponent(match[1]) : "download";
+  const blob = await res.blob();
+  const isPdf = contentType.toLowerCase().includes("application/pdf") || disposition.toLowerCase().includes("inline");
+
+  return { blob, contentType, filename, isPdf };
+}
+
 export const api = {
   baseUrl,
 
@@ -203,6 +247,10 @@ export const api = {
 
   async deleteDocument(documentId: string): Promise<{ deleted: boolean }> {
     return request<{ deleted: boolean }>(`/api/documents/${documentId}`, { method: "DELETE" });
+  },
+
+  async getDocumentFile(documentId: string): Promise<{ blob: Blob; contentType: string; filename: string; isPdf: boolean }> {
+    return requestBlob(`/api/documents/${documentId}/file`, { method: "GET" });
   },
 
   async listChats(): Promise<{ chats: ChatSummary[] }> {
