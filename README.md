@@ -17,6 +17,21 @@ Web application for **DocuMind**, a multi-user document intelligence product: up
 
 ---
 
+## High-Level Architecture (Frontend)
+
+```mermaid
+flowchart LR
+  U[User] --> UI[Next.js UI]
+  UI -->|fetch| API[Express API]
+  API --> DB[(MongoDB)]
+  API --> FS[(uploads/<userId>/)]
+  API --> Q[(Redis/BullMQ)]
+  W[Worker] --> Q
+  UI -->|render| Pages[Dashboard • Documents • Chat • History • Settings]
+```
+
+---
+
 ## What’s implemented
 
 - **Auth** — Login, signup, protected dashboard routes, session bootstrap via `GET /api/auth/me`
@@ -52,7 +67,15 @@ Create **`.env.local`** in this directory:
 NEXT_PUBLIC_API_URL=http://localhost:5000
 ```
 
-Use your deployed API origin in production (no trailing slash).
+#### What this env var does (frontend-oriented)
+
+- **`NEXT_PUBLIC_API_URL`**: where the browser calls the backend. This powers the entire UX:
+  - **Upload** → `POST /api/documents/upload/multipart`
+  - **Processing status** → `GET /api/documents` + `GET /api/documents/processing/health`
+  - **Chat** → `POST /api/chats/ask` and history endpoints
+  - **Auth** → register/login/refresh/me + verification/reset flows
+
+Use your deployed API origin in production (no trailing slash). If you deploy to Vercel, this must be the public HTTPS API origin.
 
 ### 3. Run (development)
 
@@ -90,6 +113,42 @@ src/
 1. Set **`NEXT_PUBLIC_API_URL`** to your public API base URL (HTTPS).
 2. Ensure the **server** allows your site origin in CORS (`CLIENT_ORIGIN` or equivalent on the backend).
 3. Same-site cookies: session cookie is `SameSite=Lax`; use HTTPS everywhere in production.
+
+---
+
+## Frontend flow (User action → Result)
+
+### Upload → Processing → Ready
+
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant UI as Next.js UI
+  participant API as Express API
+  participant W as Worker
+
+  U->>UI: Select file
+  UI->>API: POST /api/documents/upload/multipart (FormData)
+  API-->>UI: Document(status=uploaded)
+  UI->>API: Poll GET /api/documents
+  API->>W: Queue job (Redis/BullMQ)
+  W-->>API: status updates in DB
+  API-->>UI: Document(status=ready)
+```
+
+### Chat (grounded answer + citations)
+
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant UI as Next.js UI
+  participant API as Chat API
+
+  U->>UI: Ask question (optionally select docs)
+  UI->>API: POST /api/chats/ask
+  API-->>UI: assistantMessage + citations
+  UI-->>U: Render answer + Sources cards + feedback buttons
+```
 
 ---
 
