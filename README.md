@@ -4,6 +4,15 @@ Web application for **DocuMind**, a multi-user document intelligence product: up
 
 **Pair with:** [documind-server](../documind-server) (REST API). If you cloned only this repo, add the backend separately and point `NEXT_PUBLIC_API_URL` at it.
 
+### Live deployment (production)
+
+| | URL |
+|--|-----|
+| **Web app** | [https://documind.enrolbee.com/](https://documind.enrolbee.com/) |
+| **API** | [https://api.documind.enrolbee.com/](https://api.documind.enrolbee.com/) |
+
+Production env example: **`NEXT_PUBLIC_API_URL=https://api.documind.enrolbee.com`** (no trailing slash). The API must allow **`https://documind.enrolbee.com`** in **`CORS_ORIGINS`**.
+
 ---
 
 ## Project overview
@@ -85,15 +94,17 @@ Create **`.env.local`** in this directory:
 NEXT_PUBLIC_API_URL=http://localhost:5000
 ```
 
+For production use **`https://api.documind.enrolbee.com`** (or your own API host), with no trailing slash.
+
 #### What this env var does (frontend-oriented)
 
 - **`NEXT_PUBLIC_API_URL`**: where the browser calls the backend. This powers the entire UX:
   - **Upload** → `POST /api/documents/upload/multipart`
   - **Processing status** → `GET /api/documents` + `GET /api/documents/processing/health`
   - **Chat** → `POST /api/chats/ask` and history endpoints
-  - **Auth** → register/login/refresh/me + verification/reset flows
+  - **Auth** → register, login, refresh, profile, account delete
 
-Use your deployed API origin in production (no trailing slash). If you deploy to Vercel, this must be the public HTTPS API origin.
+Use your deployed API origin in production (no trailing slash).
 
 ### 3. Run (development)
 
@@ -116,11 +127,12 @@ npm start
 
 Typical deployment is **Vercel (frontend)** + **Render/Railway/Fly (API + worker)** + **MongoDB Atlas + Redis**.
 
+**DocuMind production:** app at [https://documind.enrolbee.com/](https://documind.enrolbee.com/), API at [https://api.documind.enrolbee.com/](https://api.documind.enrolbee.com/).
+
 Frontend checklist:
 
-- Set `NEXT_PUBLIC_API_URL` to the deployed API origin (HTTPS).
-- Ensure the backend allows your frontend origin in CORS (configured in backend `app.ts`).
-- If your backend uses email verification/reset, ensure `APP_BASE_URL` on the backend points to your deployed frontend.
+- Set **`NEXT_PUBLIC_API_URL`** to the deployed API origin (HTTPS, no trailing slash).
+- Ensure the backend **`CORS_ORIGINS`** includes your frontend origin (e.g. `https://documind.enrolbee.com`).
 
 ---
 
@@ -140,8 +152,8 @@ src/
 
 ## Deploying (e.g. Vercel)
 
-1. Set **`NEXT_PUBLIC_API_URL`** to your public API base URL (HTTPS).
-2. Ensure the **server** allows your site origin in CORS (`CLIENT_ORIGIN` or equivalent on the backend).
+1. Set **`NEXT_PUBLIC_API_URL`** to your public API base URL (HTTPS), e.g. **`https://api.documind.enrolbee.com`** for the live stack.
+2. Ensure the **server** allows your site origin in **`CORS_ORIGINS`** (e.g. **`https://documind.enrolbee.com`**).
 3. Same-site cookies: session cookie is `SameSite=Lax`; use HTTPS everywhere in production.
 
 ---
@@ -218,7 +230,6 @@ sequenceDiagram
 ## Known limitations
 
 - No in-browser rendering for DOCX/PPTX; uploaded files are managed and used for retrieval, but “preview” is not exposed as a viewer in this build.
-- Some flows (verify/reset) are API-complete; adding dedicated UI pages is straightforward if required.
 
 ---
 
