@@ -64,7 +64,7 @@ flowchart LR
 ## What’s implemented
 
 - **Auth** — Login, signup, protected dashboard routes, session bootstrap via `GET /api/auth/me`
-- **Documents** — List, upload (**multipart** `FormData` preferred; JSON base64 still supported), delete, status polling (`uploaded` → `processing` → `ready` / `failed`), worker health strip
+- **Documents** — List, upload (**multipart** `FormData` preferred; JSON base64 still supported), **delete** (`DELETE /api/documents/:id` — removes document + chunks + file on server; past chat messages are not rewritten), status polling (`uploaded` → `processing` → `ready` / `failed`), worker health strip
 - **Chat** — Document sidebar (desktop) + **mobile sheet** picker, “Search all” vs selected docs, suggested questions from API, citations, thumbs up/down on assistant messages
 - **History** — Conversation list → resume chat with `?chatId=`
 - **Dashboard** — Live stats from documents + chats (no mock data)
