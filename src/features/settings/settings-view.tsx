@@ -17,43 +17,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { api } from "@/services/api";
 import { authStorage } from "@/store/auth-storage";
-
-const PREFS_KEY = "documind_prefs_v1";
-
-type LocalPrefs = {
-  emailNotifications: boolean;
-  autoProcessDocuments: boolean;
-};
-
-const defaultPrefs: LocalPrefs = {
-  emailNotifications: true,
-  autoProcessDocuments: true,
-};
-
-function loadPrefs(): LocalPrefs {
-  if (typeof window === "undefined") return defaultPrefs;
-  try {
-    const raw = localStorage.getItem(PREFS_KEY);
-    if (!raw) return defaultPrefs;
-    const parsed = JSON.parse(raw) as Partial<LocalPrefs>;
-    return {
-      emailNotifications:
-        typeof parsed.emailNotifications === "boolean" ? parsed.emailNotifications : defaultPrefs.emailNotifications,
-      autoProcessDocuments:
-        typeof parsed.autoProcessDocuments === "boolean" ? parsed.autoProcessDocuments : defaultPrefs.autoProcessDocuments,
-    };
-  } catch {
-    return defaultPrefs;
-  }
-}
-
-function savePrefs(p: LocalPrefs): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(PREFS_KEY, JSON.stringify(p));
-}
 
 export function SettingsView() {
   const router = useRouter();
@@ -63,25 +28,15 @@ export function SettingsView() {
   const [saving, setSaving] = useState(false);
   const [profileError, setProfileError] = useState("");
   const [profileOk, setProfileOk] = useState(false);
-  const [prefs, setPrefs] = useState<LocalPrefs>(defaultPrefs);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
-    setPrefs(loadPrefs());
-  }, []);
-
-  useEffect(() => {
     setName(user.name);
     setEmail(user.email);
   }, [user.name, user.email]);
-
-  const persistPrefs = (next: LocalPrefs) => {
-    setPrefs(next);
-    savePrefs(next);
-  };
 
   const handleDeleteAccount = async () => {
     setDeleteError("");
@@ -117,7 +72,7 @@ export function SettingsView() {
     <div className="p-4 sm:p-6 max-w-2xl mx-auto space-y-8 animate-fade-in pb-safe">
       <div>
         <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground text-sm sm:text-base mt-1">Account and UI preferences</p>
+        <p className="text-muted-foreground text-sm sm:text-base mt-1">Profile and account security</p>
       </div>
 
       <form onSubmit={handleSaveProfile} className="rounded-xl border bg-card p-4 sm:p-6 space-y-4">
@@ -151,35 +106,6 @@ export function SettingsView() {
           )}
         </Button>
       </form>
-
-      <div className="rounded-xl border bg-card p-4 sm:p-6 space-y-4">
-        <h2 className="text-lg font-semibold">Preferences</h2>
-        <p className="text-xs text-muted-foreground">
-          Stored on this device only (demo). The server always processes uploads in the background.
-        </p>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-sm font-medium">Email notifications</p>
-              <p className="text-xs text-muted-foreground">Placeholder toggle for future email digests</p>
-            </div>
-            <Switch
-              checked={prefs.emailNotifications}
-              onCheckedChange={(v) => persistPrefs({ ...prefs, emailNotifications: v })}
-            />
-          </div>
-          <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-sm font-medium">Highlight auto-processing</p>
-              <p className="text-xs text-muted-foreground">Reminder that uploads queue for extraction automatically</p>
-            </div>
-            <Switch
-              checked={prefs.autoProcessDocuments}
-              onCheckedChange={(v) => persistPrefs({ ...prefs, autoProcessDocuments: v })}
-            />
-          </div>
-        </div>
-      </div>
 
       <div className="rounded-xl border border-destructive/25 bg-card p-4 sm:p-6 space-y-4">
         <div>

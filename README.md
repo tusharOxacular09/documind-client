@@ -66,7 +66,7 @@ flowchart LR
 - **Chat** — Document sidebar (desktop) + **mobile sheet** picker, “Search all” vs selected docs, suggested questions from API, citations, thumbs up/down on assistant messages
 - **History** — Conversation list → resume chat with `?chatId=`
 - **Dashboard** — Live stats from documents + chats (no mock data)
-- **Settings** — Profile update (`PUT /api/auth/profile`), account deletion (`POST /api/auth/account/delete` with password), device-local preference toggles
+- **Settings** — Profile update (`PUT /api/auth/profile`), account deletion (`POST /api/auth/account/delete` with password)
 - **UX** — Responsive layout, `dvh` / safe-area aware shell, accessible controls
 
 ---
