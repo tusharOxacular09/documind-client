@@ -6,7 +6,19 @@ Web application for **DocuMind**, a multi-user document intelligence product: up
 
 ---
 
-## Stack
+## Project overview
+
+This frontend provides the full end-user experience for DocuMind:
+
+- Authenticated workspace (dashboard shell)
+- Document upload + status tracking
+- Grounded chat with citations + feedback
+- Conversation history
+- Settings (profile + account deletion)
+
+---
+
+## Chosen tech stack (and why)
 
 | Layer | Choice |
 |--------|--------|
@@ -14,6 +26,12 @@ Web application for **DocuMind**, a multi-user document intelligence product: up
 | Styling | **Tailwind CSS**, shadcn-style UI primitives |
 | Auth | JWT access + refresh; tokens in `localStorage`, session cookie for route guards |
 | Data | Native `fetch` wrapper in `src/services/api.ts` (auto-refresh on 401) |
+
+Why these choices:
+
+- **Next.js App Router**: clean routing + layouts for a dashboard-style app.
+- **TypeScript**: safer API DTO integration and fewer runtime errors.
+- **Tailwind**: fast responsive UI and consistent design system.
 
 ---
 
@@ -94,6 +112,18 @@ npm start
 
 ---
 
+## Setup (deployed)
+
+Typical deployment is **Vercel (frontend)** + **Render/Railway/Fly (API + worker)** + **MongoDB Atlas + Redis**.
+
+Frontend checklist:
+
+- Set `NEXT_PUBLIC_API_URL` to the deployed API origin (HTTPS).
+- Ensure the backend allows your frontend origin in CORS (configured in backend `app.ts`).
+- If your backend uses email verification/reset, ensure `APP_BASE_URL` on the backend points to your deployed frontend.
+
+---
+
 ## Project layout (high level)
 
 ```
@@ -149,6 +179,46 @@ sequenceDiagram
   API-->>UI: assistantMessage + citations
   UI-->>U: Render answer + Sources cards + feedback buttons
 ```
+
+---
+
+## Authentication and authorization approach (UI)
+
+- Session is bootstrapped by calling `GET /api/auth/me` on app load (dashboard shell).
+- API client auto-refreshes access token on `401` using `POST /api/auth/refresh` when possible.
+- Routes inside the dashboard require an authenticated session; unauthenticated users are redirected to login.
+- The UI never directly accesses other users’ data; all isolation is enforced server-side.
+
+---
+
+## AI agent design and purpose (UX)
+
+- The chat UI is designed to keep answers **grounded**:
+  - users can pick documents or use “Search all”
+  - answers show **Sources** cards with document name + snippet
+  - users can give feedback (thumbs up/down) per answer
+
+---
+
+## Creative/custom feature
+
+- **Feedback loop** on assistant messages (persisted)
+- **Dynamic suggested questions** (from backend)
+- **Mobile-friendly doc picker** (Sheet) and responsive layouts across pages
+
+---
+
+## Key design decisions and trade-offs
+
+- Prefer **multipart upload** for efficiency; JSON base64 remains as a fallback integration option.
+- Keep UI responsive and robust with polling while ingestion is processing (simple and reliable for an assessment build).
+
+---
+
+## Known limitations
+
+- No in-browser rendering for DOCX/PPTX; uploaded files are managed and used for retrieval, but “preview” is not exposed as a viewer in this build.
+- Some flows (verify/reset) are API-complete; adding dedicated UI pages is straightforward if required.
 
 ---
 
