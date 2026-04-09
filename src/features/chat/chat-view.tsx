@@ -132,6 +132,8 @@ export function ChatView() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, typing]);
 
+  const formatNow = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
   useEffect(() => {
     setChatId(searchParams.get("chatId"));
   }, [searchParams]);
@@ -224,8 +226,22 @@ export function ChatView() {
     const msg = (text || input).trim();
     if (!msg) return;
     setInput("");
-    setTyping(true);
     setError(null);
+
+    const optimisticUserId = `optimistic-user-${Date.now()}`;
+    const optimisticUser: Message = {
+      id: optimisticUserId,
+      role: "user",
+      content: msg,
+      timestamp: formatNow(),
+    };
+
+    setMessages((prev) => {
+      const base = prev.length === 1 && prev[0].id === "1" ? [] : prev;
+      return [...base, optimisticUser];
+    });
+    setTyping(true);
+
     try {
       const payload = await api.askChat({
         chatId: chatId ?? undefined,
@@ -247,8 +263,8 @@ export function ChatView() {
         feedback: payload.assistantMessage.feedback,
       };
       setMessages((prev) => {
-        const base = prev.length === 1 && prev[0].id === "1" ? [] : prev;
-        return [...base, userMsg, aiMsg];
+        const withoutOptimistic = prev.filter((m) => m.id !== optimisticUserId);
+        return [...withoutOptimistic, userMsg, aiMsg];
       });
 
       if (!chatId) {
@@ -257,6 +273,7 @@ export function ChatView() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to send message");
+      // Keep the user's message visible so they can see what failed and try again.
     } finally {
       setTyping(false);
     }
@@ -399,17 +416,26 @@ export function ChatView() {
           {/* Typing indicator */}
           {typing && (
             <div className="flex justify-start">
-              <div className="bg-card border rounded-2xl rounded-tl-md px-4 py-3">
-                <div className="flex gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-muted-foreground animate-pulse-gentle" />
-                  <span
-                    className="w-2 h-2 rounded-full bg-muted-foreground animate-pulse-gentle"
-                    style={{ animationDelay: "0.3s" }}
-                  />
-                  <span
-                    className="w-2 h-2 rounded-full bg-muted-foreground animate-pulse-gentle"
-                    style={{ animationDelay: "0.6s" }}
-                  />
+              <div className="space-y-3 max-w-[80%] lg:max-w-[65%]">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-6 h-6 rounded-md bg-primary flex items-center justify-center">
+                    <Sparkles className="w-3.5 h-3.5 text-primary-foreground" />
+                  </div>
+                  <span className="text-xs font-medium text-muted-foreground">DocuMind AI</span>
+                </div>
+                <div className="bg-card border rounded-2xl rounded-tl-md px-4 py-3">
+                  <div className="flex gap-1.5 items-center" aria-live="polite" aria-busy="true">
+                    <span className="sr-only">Generating answer</span>
+                    <span className="w-2 h-2 rounded-full bg-muted-foreground animate-pulse-gentle" />
+                    <span
+                      className="w-2 h-2 rounded-full bg-muted-foreground animate-pulse-gentle"
+                      style={{ animationDelay: "0.3s" }}
+                    />
+                    <span
+                      className="w-2 h-2 rounded-full bg-muted-foreground animate-pulse-gentle"
+                      style={{ animationDelay: "0.6s" }}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -418,7 +444,7 @@ export function ChatView() {
         </div>
 
         {/* Suggested queries */}
-        {messages.length <= 1 && (
+        {messages.length <= 1 && !typing && (
           <div className="px-4 pb-2 flex flex-wrap gap-2">
             {(suggestions.length > 0 ? suggestions.map((s) => s.text) : fallbackSuggestedQueries).map((q) => (
               <button

@@ -11,6 +11,8 @@ Web application for **DocuMind**, a multi-user document intelligence product: up
 | **Web app** | [https://documind.enrolbee.com/](https://documind.enrolbee.com/) |
 | **API** | [https://api.documind.enrolbee.com/](https://api.documind.enrolbee.com/) |
 
+**Hosting:** The production **web app and API/worker** run on **Amazon Web Services (AWS)**. The database is **MongoDB Atlas**; background document ingestion uses **BullMQ** with **Redis** as the queue backend (see the server README for details).
+
 Production env example: **`NEXT_PUBLIC_API_URL=https://api.documind.enrolbee.com`** (no trailing slash). The API must allow **`https://documind.enrolbee.com`** in **`CORS_ORIGINS`**.
 
 ---
@@ -50,9 +52,9 @@ Why these choices:
 flowchart LR
   U[User] --> UI[Next.js UI]
   UI -->|fetch| API[Express API]
-  API --> DB[(MongoDB)]
+  API --> DB[(MongoDB Atlas)]
   API --> FS[(uploads/<userId>/)]
-  API --> Q[(Redis/BullMQ)]
+  API --> Q[(Redis · BullMQ)]
   W[Worker] --> Q
   UI -->|render| Pages[Dashboard • Documents • Chat • History • Settings]
 ```
@@ -74,7 +76,7 @@ flowchart LR
 ## Prerequisites
 
 - **Node.js** 20+ (LTS recommended)
-- **Backend** running with MongoDB (see server README)
+- **Backend** running with MongoDB locally or **MongoDB Atlas** in production (see server README)
 
 ---
 
@@ -125,9 +127,9 @@ npm start
 
 ## Setup (deployed)
 
-Typical deployment is **Vercel (frontend)** + **Render/Railway/Fly (API + worker)** + **MongoDB Atlas + Redis**.
+**DocuMind production:** web app and API/worker on **AWS** ([documind.enrolbee.com](https://documind.enrolbee.com/), [api.documind.enrolbee.com](https://api.documind.enrolbee.com/)); database on **MongoDB Atlas**; ingestion queue via **BullMQ** + **Redis**.
 
-**DocuMind production:** app at [https://documind.enrolbee.com/](https://documind.enrolbee.com/), API at [https://api.documind.enrolbee.com/](https://api.documind.enrolbee.com/).
+If you are deploying your own fork, a common pattern is **Vercel (frontend)** + **AWS or another host (API + worker + Redis)** + **MongoDB Atlas** — mirror the server README checklist.
 
 Frontend checklist:
 
@@ -150,11 +152,11 @@ src/
 
 ---
 
-## Deploying (e.g. Vercel)
+## Deploying
 
-1. Set **`NEXT_PUBLIC_API_URL`** to your public API base URL (HTTPS), e.g. **`https://api.documind.enrolbee.com`** for the live stack.
-2. Ensure the **server** allows your site origin in **`CORS_ORIGINS`** (e.g. **`https://documind.enrolbee.com`**).
-3. Same-site cookies: session cookie is `SameSite=Lax`; use HTTPS everywhere in production.
+**Production DocuMind** is built and served from **AWS** (see URLs above). Configure **`NEXT_PUBLIC_API_URL`** to your API origin on deploy.
+
+For **Vercel or another host** (self-hosted frontend): set **`NEXT_PUBLIC_API_URL`** to your public API base URL (HTTPS), e.g. **`https://api.documind.enrolbee.com`** for the live backend. Ensure the **server** allows your site origin in **`CORS_ORIGINS`** (e.g. **`https://documind.enrolbee.com`**). Session bootstrap uses `SameSite=Lax`; use HTTPS everywhere in production.
 
 ---
 
