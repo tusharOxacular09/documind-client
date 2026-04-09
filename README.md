@@ -2,7 +2,7 @@
 
 Web application for **DocuMind**, a multi-user document intelligence product: upload PDFs, Word, and PowerPoint files, wait for background processing, then chat with **grounded answers** and **source citations**. Built for the Trao Full-Stack AI Engineering assessment.
 
-**Pair with:** [documind-server](../documind-server) (REST API). If you cloned only this repo, add the backend separately and point `NEXT_PUBLIC_API_URL` at it.
+**Pair with:** the separate **documind-server** repository (REST API). This is not a monorepo: clone the backend on its own and set `NEXT_PUBLIC_API_URL` to that API’s origin.
 
 ### Live deployment (production)
 
@@ -246,6 +246,6 @@ sequenceDiagram
 
 ---
 
-## Full-system docs
+## Related repository
 
-For architecture diagrams, auth model, RAG behavior, and API surface, see the **[repository root README](../README.md)** (if this repo lives inside a monorepo).
+End-to-end behavior also depends on the **documind-server** repo: Express API, BullMQ worker, MongoDB models, retrieval/RAG, and environment variables documented there. There is **no single root README** across repos—read **this file** for the frontend and the **server README** for the backend.
