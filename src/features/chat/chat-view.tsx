@@ -126,10 +126,16 @@ export function ChatView() {
   const [chatId, setChatId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<ChatSuggestion[]>([]);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  /** Scroll only this pane — avoids scrollIntoView chaining to the dashboard main scroll and creating a blank gap. */
+  const messagesScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = messagesScrollRef.current;
+    if (!el) return;
+    const id = requestAnimationFrame(() => {
+      el.scrollTop = el.scrollHeight;
+    });
+    return () => cancelAnimationFrame(id);
   }, [messages, typing]);
 
   const formatNow = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -294,7 +300,7 @@ export function ChatView() {
   };
 
   return (
-    <div className="flex h-[calc(100dvh-3.5rem)] min-h-[calc(100dvh-3.5rem)] max-h-[calc(100dvh-3.5rem)] animate-fade-in">
+    <div className="flex h-full min-h-0 w-full animate-fade-in">
       {/* Document selector panel */}
       <div className="border-r bg-card hidden md:flex flex-col shrink-0 min-h-0 w-64 transition-all duration-300">
         <DocumentPickerSection
@@ -329,17 +335,20 @@ export function ChatView() {
       </Sheet>
 
       {/* Chat area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0">
         {error && (
-          <div className="p-4">
+          <div className="p-4 shrink-0">
             <Alert variant="destructive">
               <AlertTitle>Chat error</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           </div>
         )}
-        {/* Messages */}
-        <div className="flex-1 overflow-auto p-4 space-y-4 scrollbar-thin">
+        {/* Messages — single scroll container; do not use scrollIntoView (scrolls ancestor main and causes white gap). */}
+        <div
+          ref={messagesScrollRef}
+          className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 space-y-4 scrollbar-thin overscroll-contain [overflow-anchor:none]"
+        >
           {messages.map((msg) => (
             <div key={msg.id} className={cn("flex", msg.role === "user" ? "justify-end" : "justify-start")}>
               <div
@@ -440,12 +449,11 @@ export function ChatView() {
               </div>
             </div>
           )}
-          <div ref={bottomRef} />
         </div>
 
         {/* Suggested queries */}
         {messages.length <= 1 && !typing && (
-          <div className="px-4 pb-2 flex flex-wrap gap-2">
+          <div className="px-4 pb-2 flex flex-wrap gap-2 shrink-0">
             {(suggestions.length > 0 ? suggestions.map((s) => s.text) : fallbackSuggestedQueries).map((q) => (
               <button
                 key={q}
@@ -460,7 +468,7 @@ export function ChatView() {
         )}
 
         {/* Input */}
-        <div className="border-t bg-card p-4">
+        <div className="border-t bg-card p-4 shrink-0">
           {selectionNotReady && (
             <p className="text-xs text-amber-600 dark:text-amber-500 max-w-4xl mx-auto mb-2 px-1">
               Selected documents are still processing or failed. Answers may say there is not enough evidence until at
