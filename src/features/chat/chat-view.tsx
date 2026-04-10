@@ -138,6 +138,7 @@ function DocumentPickerSection({
 export function ChatView() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const chatId = searchParams.get("chatId");
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
@@ -146,7 +147,6 @@ export function ChatView() {
   const [searchAll, setSearchAll] = useState(false);
   const [typing, setTyping] = useState(false);
   const [mobileDocSheetOpen, setMobileDocSheetOpen] = useState(false);
-  const [chatId, setChatId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<ChatSuggestion[]>([]);
   /** Scroll only this pane — avoids scrollIntoView chaining to the dashboard main scroll and creating a blank gap. */
@@ -162,10 +162,6 @@ export function ChatView() {
   }, [messages, typing]);
 
   const formatNow = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-
-  useEffect(() => {
-    setChatId(searchParams.get("chatId"));
-  }, [searchParams]);
 
   const loadDocuments = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) setDocumentsLoading(true);
@@ -231,6 +227,7 @@ export function ChatView() {
       setMessages(initialMessages);
       return;
     }
+    setMessages([]);
     const loadChat = async () => {
       try {
         const data = await api.getChat(chatId);
@@ -300,7 +297,6 @@ export function ChatView() {
       });
 
       if (!chatId) {
-        setChatId(payload.chat.id);
         router.replace(`/chat?chatId=${payload.chat.id}`);
       }
     } catch (err) {
