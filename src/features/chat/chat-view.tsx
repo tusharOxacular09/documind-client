@@ -22,6 +22,20 @@ interface Message {
   feedback?: "none" | "up" | "down";
 }
 
+const toUniqueSources = (
+  citations: Array<{ documentId?: string; documentName: string; snippet: string }>
+): { doc: string; snippet: string }[] => {
+  const byDocument = new Map<string, { doc: string; snippet: string }>();
+  for (const citation of citations) {
+    const key = citation.documentId || citation.documentName.toLowerCase();
+    const current = byDocument.get(key);
+    if (!current || citation.snippet.length > current.snippet.length) {
+      byDocument.set(key, { doc: citation.documentName, snippet: citation.snippet });
+    }
+  }
+  return [...byDocument.values()];
+};
+
 const fallbackSuggestedQueries = [
   "Summarize my latest uploaded document",
   "What are the key milestones?",
@@ -213,7 +227,7 @@ export function ChatView() {
           role: m.role === "assistant" ? "ai" : "user",
           content: m.content,
           timestamp: new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          sources: m.citations.map((c) => ({ doc: c.documentName, snippet: c.snippet })),
+          sources: toUniqueSources(m.citations),
           feedback: m.feedback,
         }));
         setMessages(mapped.length ? mapped : initialMessages);
@@ -265,7 +279,7 @@ export function ChatView() {
         role: "ai",
         content: payload.assistantMessage.content,
         timestamp: new Date(payload.assistantMessage.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        sources: payload.assistantMessage.citations.map((c) => ({ doc: c.documentName, snippet: c.snippet })),
+        sources: toUniqueSources(payload.assistantMessage.citations),
         feedback: payload.assistantMessage.feedback,
       };
       setMessages((prev) => {
