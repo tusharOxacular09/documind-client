@@ -231,6 +231,19 @@ export function ChatView() {
     const loadChat = async () => {
       try {
         const data = await api.getChat(chatId);
+        const citedDocIds = [
+          ...new Set(
+            data.chat.messages
+              .flatMap((m) => m.citations)
+              .map((c) => c.documentId)
+              .filter((id): id is string => Boolean(id))
+          ),
+        ];
+        if (citedDocIds.length > 0) {
+          setSearchAll(false);
+          setSelectedDocs(citedDocIds);
+        }
+
         const mapped: Message[] = data.chat.messages.map((m: ChatMessage) => ({
           id: m.id,
           role: m.role === "assistant" ? "ai" : "user",
