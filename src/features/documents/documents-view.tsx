@@ -22,11 +22,12 @@ const typeColors = {
   pptx: "bg-warning/10 text-warning",
 };
 const supportedExt = new Set<DocumentType>(["pdf", "docx", "ppt", "pptx"]);
-const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const MAX_UPLOAD_MB = 30;
+const MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024;
 
 const formatUploadError = (message: string): string => {
-  if (message.includes("413") || message.toLowerCase().includes("10mb")) {
-    return "File is too large. Maximum upload size is 10 MB per file.";
+  if (message.includes("413") || message.toLowerCase().includes("30mb")) {
+    return `File is too large. Maximum upload size is ${MAX_UPLOAD_MB} MB per file.`;
   }
   if (message.toLowerCase().includes("size does not match")) {
     return "Upload could not be verified. Try again, or refresh and re-upload.";
@@ -129,7 +130,7 @@ export function DocumentsView() {
             throw new Error(`Unsupported file type for "${file.name}"`);
           }
           if (file.size > MAX_UPLOAD_BYTES) {
-            throw new Error(`"${file.name}" exceeds the 10 MB limit.`);
+            throw new Error(`"${file.name}" exceeds the ${MAX_UPLOAD_MB} MB limit.`);
           }
           await api.uploadDocumentFile(file);
         }
