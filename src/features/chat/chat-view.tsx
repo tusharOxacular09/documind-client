@@ -62,6 +62,7 @@ const docStatusLabel = (status: DocumentStatus): string => {
 
 type DocumentPickerSectionProps = {
   documents: DocumentItem[];
+  loading: boolean;
   selectedDocs: string[];
   searchAll: boolean;
   onToggleDoc: (id: string) => void;
@@ -70,6 +71,7 @@ type DocumentPickerSectionProps = {
 
 function DocumentPickerSection({
   documents,
+  loading,
   selectedDocs,
   searchAll,
   onToggleDoc,
@@ -89,7 +91,13 @@ function DocumentPickerSection({
         </p>
       </div>
       <div className="flex-1 overflow-y-auto p-2 space-y-1 scrollbar-thin min-h-0">
-        {documents.length === 0 ? (
+        {loading ? (
+          <div className="space-y-2 p-2 animate-pulse">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-9 rounded bg-muted" />
+            ))}
+          </div>
+        ) : documents.length === 0 ? (
           <p className="text-xs text-muted-foreground px-2 py-4 text-center">No documents yet. Upload some first.</p>
         ) : (
           documents.map((doc) => (
@@ -134,6 +142,7 @@ export function ChatView() {
   const [input, setInput] = useState("");
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
+  const [documentsLoading, setDocumentsLoading] = useState(true);
   const [searchAll, setSearchAll] = useState(false);
   const [typing, setTyping] = useState(false);
   const [mobileDocSheetOpen, setMobileDocSheetOpen] = useState(false);
@@ -159,6 +168,7 @@ export function ChatView() {
   }, [searchParams]);
 
   const loadDocuments = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setDocumentsLoading(true);
     try {
       const data = await api.listDocuments();
       setDocuments(data.documents);
@@ -175,6 +185,8 @@ export function ChatView() {
       if (!opts?.silent) {
         setError(err instanceof Error ? err.message : "Failed to load documents");
       }
+    } finally {
+      if (!opts?.silent) setDocumentsLoading(false);
     }
   }, []);
 
@@ -319,6 +331,7 @@ export function ChatView() {
       <div className="border-r bg-card hidden md:flex flex-col shrink-0 min-h-0 w-64 transition-all duration-300">
         <DocumentPickerSection
           documents={documents}
+          loading={documentsLoading}
           selectedDocs={selectedDocs}
           searchAll={searchAll}
           onToggleDoc={toggleDoc}
@@ -334,6 +347,7 @@ export function ChatView() {
           <div className="flex flex-col flex-1 min-h-0 overflow-hidden border-t mt-4">
             <DocumentPickerSection
               documents={documents}
+              loading={documentsLoading}
               selectedDocs={selectedDocs}
               searchAll={searchAll}
               onToggleDoc={toggleDoc}

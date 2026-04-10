@@ -9,6 +9,7 @@ import type { ChatSummary } from "@/types/api";
 export function HistoryView() {
   const router = useRouter();
   const [conversations, setConversations] = useState<ChatSummary[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
@@ -17,6 +18,8 @@ export function HistoryView() {
         setConversations(data.chats);
       } catch {
         setConversations([]);
+      } finally {
+        setLoading(false);
       }
     };
     void load();
@@ -35,11 +38,25 @@ export function HistoryView() {
       <div>
         <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Conversation history</h1>
         <p className="text-muted-foreground text-sm sm:text-base mt-1">
-          {conversations.length === 0 ? "No conversations yet" : `${conversations.length} saved chats`}
+          {loading
+            ? "Loading conversations..."
+            : conversations.length === 0
+              ? "No conversations yet"
+              : `${conversations.length} saved chats`}
         </p>
       </div>
 
-      {conversations.length === 0 ? (
+      {loading ? (
+        <div className="space-y-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="rounded-xl border bg-card p-4 animate-pulse">
+              <div className="h-4 w-1/2 bg-muted rounded" />
+              <div className="h-3 w-5/6 bg-muted rounded mt-3" />
+              <div className="h-3 w-1/3 bg-muted rounded mt-3" />
+            </div>
+          ))}
+        </div>
+      ) : conversations.length === 0 ? (
         <div className="rounded-xl border border-dashed bg-muted/20 px-6 py-14 text-center text-sm text-muted-foreground">
           Open <span className="font-medium text-foreground">Chat</span> and ask a question about your documents. Each
           thread appears here automatically.

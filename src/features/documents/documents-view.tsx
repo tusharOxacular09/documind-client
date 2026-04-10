@@ -248,7 +248,7 @@ export function DocumentsView() {
             <p className="font-medium">Drag & drop files here</p>
             <p className="text-sm text-muted-foreground mt-1">or click to browse</p>
             <p className="text-xs text-muted-foreground mt-2 max-w-md mx-auto">
-              Max 10 MB per file. Status updates automatically while documents are processing.
+              Max 30 MB per file. Status updates automatically while documents are processing.
             </p>
             <div className="flex items-center justify-center gap-2 mt-3">
               <Badge variant="secondary">PDF</Badge>
@@ -276,7 +276,13 @@ export function DocumentsView() {
       </div>
 
       {/* Documents list */}
-      {docs.length === 0 ? (
+      {loading ? (
+        <div className="rounded-xl border bg-card p-5 sm:p-6 space-y-3 animate-pulse">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="h-10 rounded bg-muted" />
+          ))}
+        </div>
+      ) : docs.length === 0 ? (
         <div className="text-center py-16 rounded-xl border bg-card">
           <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
           <p className="font-medium">No documents yet</p>
